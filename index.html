@@ -39,12 +39,21 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Custom Toast Animation */
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-enter {
+            animation: slideInUp 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- Header Principal -->
-    <header class="bg-indigo-600 text-white shadow-md py-4 px-6 sticky top-0 z-50">
+    <header class="bg-indigo-600 text-white shadow-md py-4 px-6 sticky top-0 z-40">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
                 <i class="fa-solid fa-rocket"></i> Diagnóstico Emprendedor
@@ -55,9 +64,12 @@
         </div>
     </header>
 
+    <!-- Notificaciones UI (Reemplazo de alert) -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
     <!-- Contenedor Principal -->
     <main class="flex-grow flex items-center justify-center p-4">
-        <div class="w-full max-w-4xl">
+        <div class="w-full max-w-4xl relative">
             
             <!-- ESTADO CARGANDO -->
             <div id="loading-view" class="bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -95,17 +107,17 @@
             </div>
 
             <!-- CONTENEDOR DE RESULTADOS (FICHA Y PLAN DE ACCIÓN) -->
-            <div id="results-view" class="hidden">
+            <div id="results-view" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                    <div class="flex gap-2">
-                        <button id="tab-plan" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm" onclick="window.switchResultTab('plan')">
+                    <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                        <button id="tab-plan" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap" onclick="window.switchResultTab('plan')">
                             <i class="fa-solid fa-list-check mr-2"></i> Plan de Acción y Nivel
                         </button>
-                        <button id="tab-ficha" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors" onclick="window.switchResultTab('ficha')">
+                        <button id="tab-ficha" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap" onclick="window.switchResultTab('ficha')">
                             <i class="fa-solid fa-file-lines mr-2"></i> Ficha Diagnóstica
                         </button>
                     </div>
-                    <div class="space-x-2">
+                    <div class="space-x-2 flex shrink-0">
                         <button id="btn-restart" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
                             <i class="fa-solid fa-rotate-right"></i> Nuevo
                         </button>
@@ -122,14 +134,14 @@
             </div>
 
             <!-- PANEL DE ADMINISTRADOR -->
-            <div id="admin-view" class="hidden">
+            <div id="admin-view" class="hidden fade-in">
                 <div class="bg-white rounded-2xl shadow-xl p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i> Panel de Administración</h2>
                         <p id="admin-logged-email" class="text-xs text-gray-500 mt-1"></p>
                     </div>
-                    <button id="btn-exit-admin" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors text-sm font-medium">
-                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Cerrar Sesión Admin
+                    <button id="btn-exit-admin" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors text-sm font-medium shrink-0">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Cerrar Sesión
                     </button>
                 </div>
 
@@ -160,7 +172,7 @@
                     </div>
                 </div>
 
-                <!-- Detalle del Usuario -->
+                <!-- Detalle del Usuario (Admin) -->
                 <div id="admin-detail-container" class="hidden">
                     <button id="btn-back-to-list" class="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center">
                         <i class="fa-solid fa-arrow-left mr-2"></i> Volver a la lista
@@ -184,9 +196,9 @@
         <i class="fa-solid fa-lock"></i>
     </button>
 
-    <!-- Modal de Autenticación Admin con Correo (Actualizado) -->
+    <!-- Modal de Autenticación Admin con Correo -->
     <div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform transition-all">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform transition-all m-4">
             <h3 class="text-xl font-bold mb-2">Acceso Administrativo</h3>
             <p class="text-xs text-gray-500 mb-4">Ingresa con tu correo y contraseña registrados en Firebase Authentication.</p>
             
@@ -211,10 +223,9 @@
         </div>
     </div>
 
-    <!-- Firebase SDK Script -->
+    <!-- Firebase SDK Script y Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Importamos métodos de Auth incluyendo signInWithEmailAndPassword
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -496,9 +507,26 @@
         let app, db, auth, currentUser;
         let currentSectionIndex = 0;
         let userAnswers = {};
-        let activeTab = 'plan'; // Por defecto muestra el Plan de Acción con el Nivel
+        let activeTab = 'plan'; // Por defecto muestra el Plan de Acción
         let currentTimestamp = Date.now();
         let allResponses = [];
+
+        // Sistema de notificaciones personalizado (Toast) para reemplazar alert()
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-enter pointer-events-auto px-4 py-3 rounded-lg shadow-lg font-medium text-sm flex items-center gap-2 ${isError ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`;
+            toast.innerHTML = `<i class="fa-solid ${isError ? 'fa-triangle-exclamation' : 'fa-circle-info'}"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(100%)';
+                toast.style.transition = 'all 0.3s ease-in';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
 
         // Inicializar Firebase
         async function initFirebase() {
@@ -507,18 +535,16 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Escuchar cambios de estado de autenticación
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
                     const statusEl = document.getElementById('user-status');
                     if (user && !user.isAnonymous) {
-                        statusEl.innerHTML = `<span class="bg-green-500/20 text-green-200 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-user-shield mr-1"></i> Admin: ${user.email}</span>`;
+                        statusEl.innerHTML = `<span class="bg-green-500/20 text-green-200 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-user-shield mr-1"></i> Admin</span>`;
                     } else {
-                        statusEl.innerHTML = `<span class="bg-indigo-500/30 text-indigo-100 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-signal mr-1"></i> Conectado a Firestore</span>`;
+                        statusEl.innerHTML = `<span class="bg-indigo-500/30 text-indigo-100 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-signal mr-1"></i> Conectado</span>`;
                     }
                 });
 
-                // Si no hay usuario, iniciamos sesión anónima para permitir guardar encuestas
                 if (!auth.currentUser) {
                     await signInAnonymously(auth);
                 }
@@ -633,7 +659,6 @@
             html += `</div>`;
             document.getElementById('question-container').innerHTML = html;
 
-            // Actualizar botones y barra de progreso
             const progress = ((currentSectionIndex) / (questionnaire.length - 1)) * 100;
             document.getElementById('progress-bar').style.width = `${progress}%`;
             document.getElementById('step-indicator').innerText = `Paso ${currentSectionIndex + 1} de ${questionnaire.length}`;
@@ -733,10 +758,10 @@
             return isValid;
         }
 
-        // --- NAVEGACIÓN DEL WIZARD ---
+        // --- NAVEGACIÓN Y GUARDADO DE DATOS ---
         document.getElementById('btn-next').addEventListener('click', () => {
             if (!saveCurrentSectionData()) {
-                alert("Por favor completa los campos obligatorios antes de continuar.");
+                showToast("Por favor completa los campos obligatorios antes de continuar.", true);
                 return;
             }
             if (currentSectionIndex < questionnaire.length - 1) {
@@ -753,36 +778,34 @@
             }
         });
 
-        // --- ENVÍO DE DATOS A FIRESTORE ---
         document.getElementById('btn-submit').addEventListener('click', async () => {
             if (!saveCurrentSectionData()) {
-                alert("Por favor completa los campos obligatorios.");
+                showToast("Por favor completa los campos obligatorios antes de finalizar.", true);
                 return;
             }
 
             const btnSubmit = document.getElementById('btn-submit');
-            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando en Firestore...';
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
             btnSubmit.disabled = true;
             currentTimestamp = Date.now();
 
             try {
-                // Guardar en la colección de Firestore
                 const responsesRef = collection(db, COLLECTION_NAME);
                 await addDoc(responsesRef, {
                     participantName: userAnswers['q_name'] || 'Anónimo',
                     answers: userAnswers,
                     timestamp: currentTimestamp
                 });
-                
                 showResults(userAnswers);
+                showToast("¡Respuestas guardadas exitosamente!");
             } catch (error) {
                 console.error("Error guardando datos en Firestore:", error);
-                alert("Hubo un inconveniente al guardar en la nube, pero tu informe se generará localmente.");
+                showToast("No se pudo guardar en la nube, pero hemos generado tu informe localmente.", true);
                 showResults(userAnswers);
             }
         });
 
-        // --- GENERADOR DEL PLAN DE ACCIÓN Y NIVEL DEL NEGOCIO ---
+        // --- GENERADORES DE VISTAS FINALES ---
         function generateActionPlanHtml(answersToDisplay, dateTimestamp) {
             const dateStr = new Date(dateTimestamp).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
             
@@ -794,30 +817,17 @@
             const businessModel = answersToDisplay['q31'] || answersToDisplay['q4'] || 'Proyecto en desarrollo';
             const needsWork = answersToDisplay['q35'] || ['Organización y estrategia'];
             
-            // Analizar el nivel del negocio (1 al 5 basado en q34)
+            // Lógica de Niveles
             const clarityLevel = answersToDisplay['q34'] || 'No definido';
             let levelBadge = '';
             let levelTitle = '';
 
-            if (clarityLevel.includes('1️⃣')) { 
-                levelBadge = 'bg-red-50 text-red-800 border-red-200'; 
-                levelTitle = 'Nivel 1: Explorador (Idea inicial)'; 
-            } else if (clarityLevel.includes('2️⃣')) { 
-                levelBadge = 'bg-orange-50 text-orange-800 border-orange-200'; 
-                levelTitle = 'Nivel 2: Estructuración'; 
-            } else if (clarityLevel.includes('3️⃣')) { 
-                levelBadge = 'bg-yellow-50 text-yellow-800 border-yellow-200'; 
-                levelTitle = 'Nivel 3: Definición Clara'; 
-            } else if (clarityLevel.includes('4️⃣')) { 
-                levelBadge = 'bg-blue-50 text-blue-800 border-blue-200'; 
-                levelTitle = 'Nivel 4: Enfoque Estratégico'; 
-            } else if (clarityLevel.includes('5️⃣')) { 
-                levelBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200'; 
-                levelTitle = 'Nivel 5: Listo para Escalar'; 
-            } else { 
-                levelBadge = 'bg-gray-50 text-gray-800 border-gray-200'; 
-                levelTitle = 'Nivel: En Diagnóstico'; 
-            }
+            if (clarityLevel.includes('1️⃣')) { levelBadge = 'bg-red-50 text-red-800 border-red-200'; levelTitle = 'Nivel 1: Explorador (Idea inicial)'; }
+            else if (clarityLevel.includes('2️⃣')) { levelBadge = 'bg-orange-50 text-orange-800 border-orange-200'; levelTitle = 'Nivel 2: Estructuración'; }
+            else if (clarityLevel.includes('3️⃣')) { levelBadge = 'bg-yellow-50 text-yellow-800 border-yellow-200'; levelTitle = 'Nivel 3: Definición Clara'; }
+            else if (clarityLevel.includes('4️⃣')) { levelBadge = 'bg-blue-50 text-blue-800 border-blue-200'; levelTitle = 'Nivel 4: Enfoque Estratégico'; }
+            else if (clarityLevel.includes('5️⃣')) { levelBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200'; levelTitle = 'Nivel 5: Listo para Escalar'; }
+            else { levelBadge = 'bg-gray-50 text-gray-800 border-gray-200'; levelTitle = 'Nivel: En Diagnóstico'; }
 
             let needsListHtml = '';
             if (Array.isArray(needsWork)) {
@@ -829,7 +839,6 @@
             return `
                 <div class="bg-white w-full rounded-2xl shadow-xl overflow-hidden border border-gray-100 p-6 md:p-10" style="min-height: 800px;">
                     
-                    <!-- Cabecera del Plan -->
                     <div class="border-b border-gray-200 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Plan de Acción Personalizado</span>
@@ -837,14 +846,12 @@
                             <p class="text-gray-500 text-sm mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> Generado el ${dateStr} &bull; Prodigital</p>
                         </div>
                         
-                        <!-- Nuevo indicador de Nivel -->
                         <div class="border ${levelBadge} p-4 rounded-xl max-w-xs text-center shadow-sm w-full md:w-auto">
                             <p class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Nivel del Negocio</p>
                             <p class="text-md md:text-lg font-bold leading-snug">${levelTitle}</p>
                         </div>
                     </div>
 
-                    <!-- Resumen del Negocio -->
                     <div class="bg-slate-50 p-5 rounded-xl border border-gray-200 mb-8">
                         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2"><i class="fa-solid fa-lightbulb text-indigo-600 mr-2"></i> Definición Actual de tu Negocio</h4>
                         <p class="text-gray-800 text-base font-medium mb-3">"${businessModel}"</p>
@@ -869,11 +876,9 @@
                         </div>
                     </div>
 
-                    <!-- Hoja de Ruta -->
                     <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center"><i class="fa-solid fa-route text-indigo-600 mr-3"></i> Hoja de Ruta Sugerida</h3>
                     
                     <div class="space-y-6">
-                        <!-- Paso 1 -->
                         <div class="border-l-4 border-indigo-600 bg-indigo-50/40 p-5 rounded-r-xl">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-bold bg-indigo-600 text-white px-2.5 py-1 rounded">PASO 1: Fundamentos (Semanas 1-2)</span>
@@ -882,7 +887,6 @@
                             <p class="text-gray-600 text-sm">Estructurar la descripción formal de tu servicio/producto y fijar tus precios calculando costos reales.</p>
                         </div>
 
-                        <!-- Paso 2 -->
                         <div class="border-l-4 border-blue-500 bg-blue-50/40 p-5 rounded-r-xl">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">PASO 2: Prioridades Seleccionadas (Semanas 3-4)</span>
@@ -893,7 +897,6 @@
                             </ul>
                         </div>
 
-                        <!-- Paso 3 -->
                         <div class="border-l-4 border-emerald-500 bg-emerald-50/40 p-5 rounded-r-xl">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-bold bg-emerald-600 text-white px-2.5 py-1 rounded">PASO 3: Comercialización (Mes 2 en adelante)</span>
@@ -904,13 +907,12 @@
                     </div>
 
                     <div class="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-                        &copy; 2026 Prodigital &bull; Documento generado automáticamente con base en el diagnóstico del participante.
+                        &copy; 2026 Prodigital &bull; Documento generado automáticamente.
                     </div>
                 </div>
             `;
         }
 
-        // --- GENERADOR DE FICHA DIAGNÓSTICA ---
         function generateCVHtml(answersToDisplay, dateTimestamp) {
             const dateStr = new Date(dateTimestamp).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
             
@@ -967,19 +969,18 @@
             `;
         }
 
-        // --- PESTAÑAS DE RESULTADOS ---
         window.switchResultTab = function(tab) {
             activeTab = tab;
             const btnFicha = document.getElementById('tab-ficha');
             const btnPlan = document.getElementById('tab-plan');
             
             if (tab === 'plan') {
-                btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm";
-                btnFicha.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors";
+                btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
+                btnFicha.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
                 document.getElementById('printable-area').innerHTML = generateActionPlanHtml(userAnswers, currentTimestamp);
             } else {
-                btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm";
-                btnPlan.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors";
+                btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
+                btnPlan.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
                 document.getElementById('printable-area').innerHTML = generateCVHtml(userAnswers, currentTimestamp);
             }
         };
@@ -992,7 +993,6 @@
             window.switchResultTab('plan');
         }
 
-        // Exportar a PDF
         document.getElementById('btn-export-pdf').addEventListener('click', () => {
             const element = document.getElementById('printable-area');
             const prefix = activeTab === 'plan' ? 'Plan_De_Accion' : 'Ficha_Diagnostica';
@@ -1006,14 +1006,13 @@
             
             const btn = document.getElementById('btn-export-pdf');
             const orig = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generando PDF...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generando...';
             
             html2pdf().set(opt).from(element).save().then(()=>{
                 btn.innerHTML = orig;
             });
         });
 
-        // Reiniciar Cuestionario
         document.getElementById('btn-restart').addEventListener('click', () => {
             userAnswers = {};
             currentSectionIndex = 0;
@@ -1024,7 +1023,7 @@
             renderSection();
         });
 
-        // --- SISTEMA ADMINISTRATIVO CON FIREBASE AUTH ---
+        // --- SISTEMA ADMINISTRATIVO ---
         const btnSecretAdmin = document.getElementById('btn-secret-admin');
         const adminModal = document.getElementById('admin-modal');
         const adminEmail = document.getElementById('admin-email');
@@ -1032,7 +1031,6 @@
         
         btnSecretAdmin.addEventListener('click', () => {
             if (currentUser && !currentUser.isAnonymous) {
-                // Si ya está autenticado como Admin con email, entra directamente
                 openAdminPanel();
             } else {
                 adminModal.classList.remove('hidden');
@@ -1044,7 +1042,6 @@
             adminModal.classList.add('hidden');
         });
 
-        // Evento de Login para Admin con Correo y Contraseña
         document.getElementById('btn-login-admin').addEventListener('click', async () => {
             const email = adminEmail.value.trim();
             const password = adminPassword.value.trim();
@@ -1056,17 +1053,16 @@
                 return;
             }
 
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             document.getElementById('admin-error').classList.add('hidden');
 
             try {
-                // Iniciar sesión en Firebase Auth con correo y contraseña
                 await signInWithEmailAndPassword(auth, email, password);
                 adminModal.classList.add('hidden');
                 openAdminPanel();
             } catch (error) {
                 console.error("Error al iniciar sesión:", error);
-                document.getElementById('admin-error').innerText = "Credenciales inválidas o sin acceso.";
+                document.getElementById('admin-error').innerText = "Credenciales inválidas.";
                 document.getElementById('admin-error').classList.remove('hidden');
             } finally {
                 btnLogin.innerHTML = 'Entrar';
@@ -1089,7 +1085,7 @@
 
         async function loadAdminData() {
             const tbody = document.getElementById('admin-table-body');
-            tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-indigo-600 text-2xl"></i><br><span class="text-sm text-gray-500 mt-2 block">Cargando registros de Firestore...</span></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-indigo-600 text-2xl"></i><br><span class="text-sm text-gray-500 mt-2 block">Cargando registros...</span></td></tr>`;
 
             try {
                 const responsesRef = collection(db, COLLECTION_NAME);
@@ -1104,7 +1100,10 @@
                 renderAdminTable();
             } catch (error) {
                 console.error("Error leyendo Firestore:", error);
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-red-500 text-sm">Error de permisos al leer la base de datos Firestore. Verifica las Reglas de Seguridad.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-red-500 text-sm">
+                    <i class="fa-solid fa-lock mb-2 text-xl"></i><br>
+                    Error de permisos al leer la base de datos Firestore.<br>
+                    Revisa las 'Reglas de Seguridad' en la consola de Firebase.</td></tr>`;
             }
         }
 
@@ -1125,12 +1124,12 @@
             allResponses.forEach((resp, index) => {
                 const date = resp.timestamp ? new Date(resp.timestamp).toLocaleString('es-ES') : 'Sin fecha';
                 html += `
-                    <tr class="hover:bg-gray-50 transition-colors">
+                    <tr class="hover:bg-gray-50 transition-colors border-b border-gray-50">
                         <td class="p-4 font-medium text-gray-800">${resp.participantName || 'Anónimo'}</td>
                         <td class="p-4 text-gray-500 text-sm">${date}</td>
                         <td class="p-4 text-center">
                             <button class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors text-sm font-medium" onclick="window.viewAdminDetail(${index})">
-                                <i class="fa-solid fa-eye mr-1"></i> Ver Informe
+                                <i class="fa-solid fa-eye mr-1"></i> Ver
                             </button>
                         </td>
                     </tr>
@@ -1156,9 +1155,9 @@
             await signOut(auth);
             document.getElementById('admin-view').classList.add('hidden');
             document.getElementById('form-view').classList.remove('hidden');
+            showToast("Sesión cerrada correctamente");
         });
 
-        // Funciones auxiliares globales
         window.applySuggestion = function(inputId, text) {
             const input = document.querySelector(`[data-input="${inputId}"]`);
             if(input) {
@@ -1173,7 +1172,7 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             
             if (!SpeechRecognition) {
-                alert("Navegador no compatible con dictado de voz nativo. Prueba en Chrome o Safari.");
+                showToast("Tu navegador no soporta el dictado por voz.", true);
                 return;
             }
 
@@ -1222,7 +1221,6 @@
             }
         };
 
-        // Inicio de la aplicación
         window.addEventListener('DOMContentLoaded', async () => {
             await initFirebase();
             document.getElementById('loading-view').classList.add('hidden');
