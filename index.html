@@ -184,7 +184,7 @@
         <i class="fa-solid fa-lock"></i>
     </button>
 
-    <!-- Modal de Autenticación con Correo en Firebase -->
+    <!-- Modal de Autenticación Admin con Correo (Actualizado) -->
     <div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center hidden">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform transition-all">
             <h3 class="text-xl font-bold mb-2">Acceso Administrativo</h3>
@@ -207,13 +207,14 @@
                     <span>Entrar</span>
                 </button>
             </div>
-            <p id="admin-error" class="text-red-500 text-xs mt-3 hidden text-center bg-red-50 p-2 rounded">Correo o contraseña incorrectos.</p>
+            <p id="admin-error" class="text-red-500 text-xs mt-3 hidden text-center bg-red-50 p-2 rounded">Credenciales inválidas o sin acceso.</p>
         </div>
     </div>
 
     <!-- Firebase SDK Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // Importamos métodos de Auth incluyendo signInWithEmailAndPassword
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -765,7 +766,7 @@
             currentTimestamp = Date.now();
 
             try {
-                // Guardar en la colección form_responses de Firestore
+                // Guardar en la colección de Firestore
                 const responsesRef = collection(db, COLLECTION_NAME);
                 await addDoc(responsesRef, {
                     participantName: userAnswers['q_name'] || 'Anónimo',
@@ -793,38 +794,29 @@
             const businessModel = answersToDisplay['q31'] || answersToDisplay['q4'] || 'Proyecto en desarrollo';
             const needsWork = answersToDisplay['q35'] || ['Organización y estrategia'];
             
-            // Detección y cálculo del NIVEL DEL NEGOCIO basado en la pregunta 34
-            const rawLevel = answersToDisplay['q34'] || '';
-            let levelBadge = 'bg-indigo-50 border-indigo-200 text-indigo-800';
-            let levelTitle = 'Nivel 1: Idea Inicial';
-            let levelDesc = 'Tu proyecto está naciendo. Tu prioridad número 1 es estructurar el concepto y validar qué problema resuelves.';
-            let levelProgress = '20%';
+            // Analizar el nivel del negocio (1 al 5 basado en q34)
+            const clarityLevel = answersToDisplay['q34'] || 'No definido';
+            let levelBadge = '';
+            let levelTitle = '';
 
-            if (rawLevel.includes('1️⃣') || rawLevel.includes('confundido')) {
-                levelTitle = 'Nivel 1: Explorador (Idea Inicial)';
-                levelBadge = 'bg-red-50 border-red-200 text-red-800';
-                levelDesc = 'Estás en la etapa de descubrimiento. Tu enfoque debe estar en definir qué vender y a quién.';
-                levelProgress = '20%';
-            } else if (rawLevel.includes('2️⃣') || rawLevel.includes('estructurarla')) {
-                levelTitle = 'Nivel 2: Estructuración de Oferta';
-                levelBadge = 'bg-orange-50 border-orange-200 text-orange-800';
-                levelDesc = 'Tienes la idea clara, ahora necesitas empaquetar tu producto/servicio con precios y costos precisos.';
-                levelProgress = '40%';
-            } else if (rawLevel.includes('3️⃣') || rawLevel.includes('bases principales')) {
-                levelTitle = 'Nivel 3: Validación Inicial';
-                levelBadge = 'bg-yellow-50 border-yellow-200 text-yellow-800';
-                levelDesc = 'Conoces las bases de tu propuesta. El siguiente paso es salir a buscar tus primeros clientes reales.';
-                levelProgress = '60%';
-            } else if (rawLevel.includes('4️⃣') || rawLevel.includes('a quién venderle')) {
-                levelTitle = 'Nivel 4: Posicionamiento Comercial';
-                levelBadge = 'bg-blue-50 border-blue-200 text-blue-800';
-                levelDesc = 'Tu negocio funciona y sabes cuál es tu cliente. Debes profesionalizar tu marca y optimizar ventas.';
-                levelProgress = '80%';
-            } else if (rawLevel.includes('5️⃣') || rawLevel.includes('escalar')) {
-                levelTitle = 'Nivel 5: Listo para Escalar';
-                levelBadge = 'bg-emerald-50 border-emerald-200 text-emerald-800';
-                levelDesc = 'Tienes bases sólidas. Tu reto principal es crear sistemas, automatizar y expandir tu alcance digital.';
-                levelProgress = '100%';
+            if (clarityLevel.includes('1️⃣')) { 
+                levelBadge = 'bg-red-50 text-red-800 border-red-200'; 
+                levelTitle = 'Nivel 1: Explorador (Idea inicial)'; 
+            } else if (clarityLevel.includes('2️⃣')) { 
+                levelBadge = 'bg-orange-50 text-orange-800 border-orange-200'; 
+                levelTitle = 'Nivel 2: Estructuración'; 
+            } else if (clarityLevel.includes('3️⃣')) { 
+                levelBadge = 'bg-yellow-50 text-yellow-800 border-yellow-200'; 
+                levelTitle = 'Nivel 3: Definición Clara'; 
+            } else if (clarityLevel.includes('4️⃣')) { 
+                levelBadge = 'bg-blue-50 text-blue-800 border-blue-200'; 
+                levelTitle = 'Nivel 4: Enfoque Estratégico'; 
+            } else if (clarityLevel.includes('5️⃣')) { 
+                levelBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200'; 
+                levelTitle = 'Nivel 5: Listo para Escalar'; 
+            } else { 
+                levelBadge = 'bg-gray-50 text-gray-800 border-gray-200'; 
+                levelTitle = 'Nivel: En Diagnóstico'; 
             }
 
             let needsListHtml = '';
@@ -837,48 +829,41 @@
             return `
                 <div class="bg-white w-full rounded-2xl shadow-xl overflow-hidden border border-gray-100 p-6 md:p-10" style="min-height: 800px;">
                     
-                    <!-- Encabezado -->
+                    <!-- Cabecera del Plan -->
                     <div class="border-b border-gray-200 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Plan de Acción Estratégico</span>
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Plan de Acción Personalizado</span>
                             <h2 class="text-3xl font-bold text-gray-800 mt-2">${name}</h2>
                             <p class="text-gray-500 text-sm mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> Generado el ${dateStr} &bull; Prodigital</p>
                         </div>
-                        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-indigo-900 max-w-xs w-full">
-                            <p class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1"><i class="fa-solid fa-bullseye mr-1"></i> Objetivo Principal</p>
-                            <p class="text-sm font-medium leading-snug">${mainGoal}</p>
+                        
+                        <!-- Nuevo indicador de Nivel -->
+                        <div class="border ${levelBadge} p-4 rounded-xl max-w-xs text-center shadow-sm w-full md:w-auto">
+                            <p class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Nivel del Negocio</p>
+                            <p class="text-md md:text-lg font-bold leading-snug">${levelTitle}</p>
                         </div>
-                    </div>
-
-                    <!-- TARJETA DESTACADA: NIVEL DEL NEGOCIO -->
-                    <div class="border-2 ${levelBadge} p-6 rounded-2xl mb-8 shadow-sm relative overflow-hidden">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                            <div>
-                                <span class="text-xs font-bold uppercase tracking-widest opacity-80">Diagnóstico de Madurez</span>
-                                <h3 class="text-2xl font-extrabold mt-1">${levelTitle}</h3>
-                            </div>
-                            <div class="w-full md:w-48 bg-white/60 rounded-full h-4 overflow-hidden border border-gray-200">
-                                <div class="bg-indigo-600 h-full transition-all duration-500" style="width: ${levelProgress}"></div>
-                            </div>
-                        </div>
-                        <p class="text-sm font-medium leading-relaxed">${levelDesc}</p>
                     </div>
 
                     <!-- Resumen del Negocio -->
                     <div class="bg-slate-50 p-5 rounded-xl border border-gray-200 mb-8">
                         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2"><i class="fa-solid fa-lightbulb text-indigo-600 mr-2"></i> Definición Actual de tu Negocio</h4>
                         <p class="text-gray-800 text-base font-medium mb-3">"${businessModel}"</p>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mt-4">
                             <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                                 <span class="block text-xs text-gray-400 uppercase font-semibold">Punto de Partida</span>
                                 <span class="text-gray-700 font-medium">${projectStage}</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                <span class="block text-xs text-gray-400 uppercase font-semibold">Objetivo</span>
+                                <span class="text-gray-700 font-medium">${mainGoal}</span>
                             </div>
                             <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                                 <span class="block text-xs text-gray-400 uppercase font-semibold">Reto Principal</span>
                                 <span class="text-gray-700 font-medium">${mainDifficulty}</span>
                             </div>
                             <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                                <span class="block text-xs text-gray-400 uppercase font-semibold">Canal Preferido</span>
+                                <span class="block text-xs text-gray-400 uppercase font-semibold">Canal de Venta</span>
                                 <span class="text-gray-700 font-medium">${salesChannel}</span>
                             </div>
                         </div>
@@ -1059,6 +1044,7 @@
             adminModal.classList.add('hidden');
         });
 
+        // Evento de Login para Admin con Correo y Contraseña
         document.getElementById('btn-login-admin').addEventListener('click', async () => {
             const email = adminEmail.value.trim();
             const password = adminPassword.value.trim();
@@ -1071,6 +1057,7 @@
             }
 
             btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+            document.getElementById('admin-error').classList.add('hidden');
 
             try {
                 // Iniciar sesión en Firebase Auth con correo y contraseña
