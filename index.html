@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnóstico de Proyecto Emprendedor</title>
+    <title>Diagnóstico y Plan de Acción Emprendedor</title>
     
-    <!-- Tailwind CSS para los estilos -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FontAwesome para iconos -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- html2pdf para exportar a PDF -->
+    <!-- html2pdf -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* Estilos personalizados adicionales */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         body {
@@ -33,7 +32,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Ocultar scrollbar pero permitir scroll */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -51,7 +49,7 @@
             <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
                 <i class="fa-solid fa-rocket"></i> Diagnóstico Emprendedor
             </h1>
-            <div id="user-status" class="text-sm opacity-80">
+            <div id="user-status" class="text-sm opacity-90 flex items-center gap-2">
                 <i class="fa-solid fa-circle-notch fa-spin"></i> Conectando...
             </div>
         </div>
@@ -61,10 +59,10 @@
     <main class="flex-grow flex items-center justify-center p-4">
         <div class="w-full max-w-4xl">
             
-            <!-- CONTENEDOR ESTADO CARGANDO -->
+            <!-- ESTADO CARGANDO -->
             <div id="loading-view" class="bg-white rounded-2xl shadow-xl p-8 text-center">
                 <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
-                <p class="text-gray-600">Preparando el entorno...</p>
+                <p class="text-gray-600">Cargando la base de datos...</p>
             </div>
 
             <!-- CONTENEDOR DEL FORMULARIO (WIZARD) -->
@@ -76,7 +74,7 @@
                 </div>
 
                 <div class="p-6 md:p-8 flex-grow overflow-y-auto no-scrollbar" id="question-container">
-                    <!-- Las preguntas se inyectarán aquí vía JS -->
+                    <!-- Preguntas inyectadas vía JS -->
                 </div>
 
                 <!-- Botones de Navegación -->
@@ -96,10 +94,17 @@
                 </div>
             </div>
 
-            <!-- CONTENEDOR DE RESULTADOS Y EXPORTACIÓN -->
+            <!-- CONTENEDOR DE RESULTADOS (FICHA Y PLAN DE ACCIÓN) -->
             <div id="results-view" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Tu Ficha Diagnóstica</h2>
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                    <div class="flex gap-2">
+                        <button id="tab-plan" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm" onclick="window.switchResultTab('plan')">
+                            <i class="fa-solid fa-list-check mr-2"></i> Plan de Acción y Nivel
+                        </button>
+                        <button id="tab-ficha" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors" onclick="window.switchResultTab('ficha')">
+                            <i class="fa-solid fa-file-lines mr-2"></i> Ficha Diagnóstica
+                        </button>
+                    </div>
                     <div class="space-x-2">
                         <button id="btn-restart" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
                             <i class="fa-solid fa-rotate-right"></i> Nuevo
@@ -110,25 +115,31 @@
                     </div>
                 </div>
 
-                <!-- Área imprimible -->
+                <!-- Área Imprimible -->
                 <div id="printable-area" class="p-0">
-                    <!-- Ficha Curriculum se inyectará aquí -->
+                    <!-- Ficha o Plan inyectado aquí -->
                 </div>
             </div>
 
-            <!-- CONTENEDOR PANEL DE ADMINISTRADOR -->
+            <!-- PANEL DE ADMINISTRADOR -->
             <div id="admin-view" class="hidden">
-                <div class="bg-white rounded-2xl shadow-xl p-6 mb-6 flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i> Panel de Administración</h2>
-                    <button id="btn-exit-admin" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                        Salir del Panel
+                <div class="bg-white rounded-2xl shadow-xl p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i> Panel de Administración</h2>
+                        <p id="admin-logged-email" class="text-xs text-gray-500 mt-1"></p>
+                    </div>
+                    <button id="btn-exit-admin" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors text-sm font-medium">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Cerrar Sesión Admin
                     </button>
                 </div>
 
-                <!-- Lista de Usuarios -->
+                <!-- Lista de Respuestas Recibidas -->
                 <div id="admin-list-container" class="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div class="p-6 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-700">Respuestas Recibidas</h3>
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-700">Respuestas Recibidas en Firestore</h3>
+                        <button id="btn-refresh-admin" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                            <i class="fa-solid fa-rotate mr-1"></i> Actualizar
+                        </button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -145,57 +156,81 @@
                         </table>
                     </div>
                     <div id="admin-empty-state" class="hidden p-8 text-center text-gray-500">
-                        No hay respuestas registradas aún.
+                        No hay respuestas registradas en Firestore todavía.
                     </div>
                 </div>
 
-                <!-- Detalle del Usuario (Admin) -->
+                <!-- Detalle del Usuario -->
                 <div id="admin-detail-container" class="hidden">
                     <button id="btn-back-to-list" class="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center">
                         <i class="fa-solid fa-arrow-left mr-2"></i> Volver a la lista
                     </button>
-                    
-                    <div id="admin-detail-wrapper" class="p-0">
-                        <!-- Respuestas inyectadas aquí tipo Curriculum -->
-                    </div>
+                    <div id="admin-detail-wrapper" class="p-0"></div>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <!-- Pie de página Prodigital -->
+    <!-- Pie de Página -->
     <footer class="bg-gray-800 text-gray-300 py-6 mt-auto z-10 relative shadow-inner">
         <div class="max-w-4xl mx-auto text-center text-sm px-4">
             <p>&copy; 2026 Prodigital. Todos los derechos reservados.</p>
         </div>
     </footer>
 
-    <!-- Botón Secreto Admin -->
-    <button id="btn-secret-admin" class="fixed bottom-4 right-4 text-gray-400 hover:text-indigo-600 opacity-30 hover:opacity-100 transition-opacity p-2 z-50" title="Acceso Admin">
+    <!-- Botón Oculto Admin -->
+    <button id="btn-secret-admin" class="fixed bottom-4 right-4 text-gray-400 hover:text-indigo-600 opacity-30 hover:opacity-100 transition-opacity p-2 z-50" title="Acceso Admin Firebase">
         <i class="fa-solid fa-lock"></i>
     </button>
 
-    <!-- Modal de Autenticación Admin -->
+    <!-- Modal de Autenticación con Correo en Firebase -->
     <div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center hidden">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform transition-all">
-            <h3 class="text-xl font-bold mb-4">Acceso Administrativo</h3>
-            <p class="text-sm text-gray-500 mb-4">Ingrese la contraseña para ver los resultados de todos los participantes. (Pista: admin123)</p>
-            <input type="password" id="admin-password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Contraseña">
-            <div class="flex justify-end gap-2">
-                <button id="btn-cancel-admin" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button id="btn-login-admin" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Entrar</button>
+            <h3 class="text-xl font-bold mb-2">Acceso Administrativo</h3>
+            <p class="text-xs text-gray-500 mb-4">Ingresa con tu correo y contraseña registrados en Firebase Authentication.</p>
+            
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="admin-email" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="admin@tudominio.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Contraseña</label>
+                    <input type="password" id="admin-password" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="••••••••">
+                </div>
             </div>
-            <p id="admin-error" class="text-red-500 text-sm mt-2 hidden">Contraseña incorrecta.</p>
+
+            <div class="flex justify-end gap-2">
+                <button id="btn-cancel-admin" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button id="btn-login-admin" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+                    <span>Entrar</span>
+                </button>
+            </div>
+            <p id="admin-error" class="text-red-500 text-xs mt-3 hidden text-center bg-red-50 p-2 rounded">Correo o contraseña incorrectos.</p>
         </div>
     </div>
 
+    <!-- Firebase SDK Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- ESTRUCTURA DEL CUESTIONARIO ---
+        // CONFIGURACIÓN DE TU PROYECTO FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBS0o_PYS_G0ndJi7cYdSksftsKKOtDcAg",
+            authDomain: "fomulario-pyme.firebaseapp.com",
+            projectId: "fomulario-pyme",
+            storageBucket: "fomulario-pyme.firebasestorage.app",
+            messagingSenderId: "330925588954",
+            appId: "1:330925588954:web:437524bc61684af4e600e3",
+            measurementId: "G-VECZCK6QCF"
+        };
+
+        const COLLECTION_NAME = "form_responses";
+
+        // --- CUESTIONARIO COMPLETO ---
         const questionnaire = [
             {
                 title: "Datos del Participante",
@@ -205,7 +240,7 @@
                 ]
             },
             {
-                title: "SECCIÓN 1 — Primero: ¿Dónde estoy con mi proyecto?",
+                title: "SECCIÓN 1 — ¿Dónde estoy con mi proyecto?",
                 questions: [
                     {
                         id: 'q1', type: 'radio', text: '1. ¿Cuál de estas situaciones describe mejor tu proyecto?',
@@ -214,19 +249,19 @@
                             '🌱 Ya comencé, pero estoy dando mis primeros pasos.',
                             '🛍️ Ya vendo productos o servicios y tengo algunos clientes.',
                             '📈 Ya tengo un negocio funcionando y quiero hacerlo crecer.',
-                            '🔄 Ya tengo un negocio funcionando y quiero ampliar mis productos, servicios o llegar a nuevos clientes.',
+                            '🔄 Ya tengo un negocio funcionando y quiero ampliar mis productos o servicios.',
                             '🤔 No estoy seguro/a.'
                         ],
-                        feedback: 'No necesitas tener un negocio formal para comenzar a trabajar en él. Primero necesitamos identificar en qué punto estás. Esto además te permitirá saber rápidamente quién necesita trabajar desde cero y quién ya puede pasar a estrategias más avanzadas.'
+                        feedback: 'Esto nos permitirá ajustar tu plan de trabajo según la etapa real en la que te encuentras.'
                     },
                     {
                         id: 'q2', type: 'radio', text: '2. ¿Qué estás desarrollando?', allowOther: true,
                         options: ['Venta de productos.', 'Prestación de servicios.', 'Venta de productos y servicios.', 'Todavía estoy definiendo qué voy a ofrecer.']
                     },
                     {
-                        id: 'q3', type: 'radio', text: '3. ¿Cuál describe mejor tu proyecto?', allowOther: true,
+                        id: 'q3', type: 'radio', text: '3. ¿Cuál describe mejor tu rubro?', allowOther: true,
                         options: [
-                            '👗 Ropa, zapatos o accesorios.', '🥬 Alimentos, verdulería o productos agrícolas.', '💄 Belleza, maquillaje, uñas, cabello, trenzas, etc.',
+                            '👗 Ropa, zapatos o accesorios.', '🥬 Alimentos, verdulería o productos agrícolas.', '💄 Belleza, maquillaje, uñas, cabello, etc.',
                             '🌱 Plantas, productos naturales o medicinales.', '🥖 Panadería, repostería o alimentos artesanales.', '💎 Joyería o bisutería.',
                             '🎓 Educación, cursos o asesorías.', '💻 Servicios digitales o tecnológicos.', '🏠 Productos o servicios para el hogar.', '🎨 Productos creativos/artesanales.'
                         ]
@@ -235,24 +270,22 @@
             },
             {
                 title: "SECCIÓN 2 — ENTENDIENDO MI NEGOCIO",
-                description: "Aquí empieza la parte realmente importante.",
                 questions: [
                     {
                         id: 'q4', type: 'textarea', text: '4. Si tuvieras que explicar tu negocio a una persona que nunca ha escuchado hablar de él, ¿qué le dirías?',
-                        feedback: 'Puedes utilizar esta fórmula: "Yo vendo/ofrezco __ para __ que necesitan/quieren __."\nEjemplo: "Vendo plantas medicinales para personas que quieren tener alternativas naturales para su hogar."',
+                        feedback: 'Fórmula sugerida: "Yo vendo/ofrezco __ para __ que necesitan/quieren __."',
                         suggestedOptions: [
-                            'Vendo/ofrezco productos caseros/artesanales para clientes que buscan algo único y de calidad.',
+                            'Vendo/ofrezco productos artesanales para clientes que buscan algo único y de alta calidad.',
                             'Presto servicios especializados para personas o negocios que necesitan resolver un problema rápido.',
-                            'Tengo una tienda/catálogo para personas de mi zona que buscan buenos precios y variedad.'
+                            'Tengo una tienda/catálogo para personas de mi zona que buscan variedad y buenos precios.'
                         ]
                     },
                     {
                         id: 'q5', type: 'radio', text: '5. ¿Qué vendes actualmente o qué te gustaría vender?',
-                        options: ['Productos físicos.', 'Servicios.', 'Productos digitales.', 'Cursos o capacitaciones.', 'Asesorías.', 'Una combinación de productos y servicios.', 'Todavía no lo tengo definido.']
+                        options: ['Productos físicos.', 'Servicios.', 'Productos digitales.', 'Cursos o capacitaciones.', 'Asesorías.', 'Combinación de productos y servicios.', 'Todavía no lo tengo definido.']
                     },
                     {
                         id: 'q6', type: 'text', text: '6. ¿Cuál es tu producto o servicio principal?',
-                        feedback: 'Si tienes muchos productos, elige aquel que te gustaría que fuera el más importante de tu negocio. Esto obliga a identificar un producto/servicio principal.',
                         suggestedOptions: [
                             'Un producto físico que yo mismo elaboro o ensamblo.',
                             'Un producto físico que compro y revendo.',
@@ -263,7 +296,7 @@
                         id: 'q7', type: 'text', text: '7. ¿Qué otros productos o servicios tienes o te gustaría ofrecer?',
                         suggestedOptions: [
                             'Productos complementarios que se usen junto a mi producto principal.',
-                            'Paquetes, combos o suscripciones mensuales.',
+                            'Paquetes, combos o suscripciones.',
                             'Servicio de entrega, instalación, o personalización.'
                         ]
                     }
@@ -273,30 +306,28 @@
                 title: "SECCIÓN 4 — ¿POR QUÉ ME COMPRARÍAN A MÍ?",
                 questions: [
                     {
-                        id: 'q12', type: 'radio', text: '12. Si existen otros negocios que venden algo parecido, ¿por qué alguien debería comprarte a ti?',
+                        id: 'q12', type: 'radio', text: '12. Si existen otros negocios parecidos, ¿por qué alguien debería comprarte a ti?',
                         options: [
                             'Precio.', 'Calidad.', 'Atención.', 'Rapidez.', 'Personalización.', 'Diseño/presentación.', 'Ubicación.', 'Experiencia.',
                             'Variedad.', 'Producto artesanal.', 'Producto natural.', 'Servicio especializado.', 'Confianza.', 'No sé todavía.'
-                        ],
-                        feedback: 'Importante: no necesitas ser "el más barato". Una diferencia también puede estar en la atención, especialización, calidad, experiencia o presentación.'
+                        ]
                     },
                     {
                         id: 'q13', type: 'radio', text: '13. ¿Qué hace diferente a tu producto o servicio?',
                         options: [
                             'Es personalizado.', 'Tiene un diseño diferente.', 'Tiene mejor presentación.', 'Utiliza materiales/productos especiales.',
-                            'Es artesanal.', 'Tiene una característica que otros no ofrecen.', 'Ofrezco atención personalizada.', 'Tengo experiencia en el área.',
-                            'Todavía no tengo una diferencia clara.', 'No sé.'
+                            'Es artesanal.', 'Ofrezco atención cercana.', 'Tengo experiencia en el área.', 'Todavía no tengo una diferencia clara.'
                         ]
                     },
                     {
                         id: 'q14', type: 'radio', text: '14. ¿Conoces otros negocios que vendan algo parecido?',
-                        options: ['Sí, conozco varios.', 'Sí, conozco algunos.', 'He visto algunos, pero no los he analizado.', 'No conozco ninguno.', 'No estoy seguro/a.']
+                        options: ['Sí, conozco varios.', 'Sí, conozco algunos.', 'He visto algunos, pero no los he analizado.', 'No conozco ninguno.']
                     },
                     {
-                        id: 'q15', type: 'checkbox', text: '15. ¿Qué has observado de esos negocios? (Puedes seleccionar varias)',
+                        id: 'q15', type: 'checkbox', text: '15. ¿Qué has observado de esos negocios?',
                         options: [
                             'Sus precios.', 'Sus productos.', 'Sus fotografías.', 'Sus redes sociales.', 'La forma en que atienden.',
-                            'Las promociones que hacen.', 'Los comentarios de sus clientes.', 'Lo que hacen diferente.', 'No los he analizado todavía.'
+                            'Las promociones que hacen.', 'Los comentarios de sus clientes.', 'No los he analizado todavía.'
                         ]
                     }
                 ]
@@ -309,7 +340,7 @@
                         options: ['Totalmente definido.', 'Bastante definido.', 'Tengo varias ideas pero debo escoger.', 'Tengo una idea general.', 'Todavía no lo sé.']
                     },
                     {
-                        id: 'q17', type: 'checkbox', text: '17. Si vendes productos, ¿qué tan claro tienes esto? (Selecciona lo que ya tienes definido)',
+                        id: 'q17', type: 'checkbox', text: '17. Si vendes productos, ¿qué tan claro tienes esto?',
                         options: [
                             'Nombre del producto.', 'Precio.', 'Costo.', 'Fotografías.', 'Descripción.', 'Presentación/empaque.', 'Tamaños o variantes.',
                             'Cantidad disponible.', 'Dónde conseguirlo o producirlo.', 'Todavía no tengo esto definido.'
@@ -318,8 +349,8 @@
                     {
                         id: 'q18', type: 'checkbox', text: '18. Si ofreces servicios, ¿qué tan claro tienes esto?',
                         options: [
-                            'Qué servicio ofrezco.', 'Qué incluye.', 'Cuánto cobro.', 'Cuánto tiempo necesito para realizarlo.', 'Qué materiales/equipos necesito.',
-                            'Qué resultado recibe el cliente.', 'Cómo se solicita o reserva.', 'Todavía no lo tengo definido.'
+                            'Qué servicio ofrezco.', 'Qué incluye.', 'Cuánto cobro.', 'Tiempo necesario.', 'Materiales/equipos.',
+                            'Resultado que recibe el cliente.', 'Cómo se reserva.', 'Todavía no lo tengo definido.'
                         ]
                     }
                 ]
@@ -335,38 +366,38 @@
                         id: 'q20', type: 'radio', text: '20. ¿Cómo estableciste o establecerías tu precio?',
                         options: [
                             'Comparando con otros negocios.', 'Calculando mis costos y agregando ganancia.', 'Según lo que considero que vale.',
-                            'Según lo que creo que los clientes pueden pagar.', 'Alguien me ayudó a establecerlo.', 'Todavía no tengo precio.'
+                            'Según lo que creo que los clientes pueden pagar.', 'Alguien me ayudó.', 'Todavía no tengo precio.'
                         ]
                     },
                     {
-                        id: 'q21', type: 'radio', text: '21. Si vendieras 10 unidades o realizaras 10 servicios en un mes, ¿sabrías aproximadamente cuánto ganarías?',
+                        id: 'q21', type: 'radio', text: '21. Si vendieras 10 unidades o servicios al mes, ¿sabrías aproximadamente cuánto ganarías?',
                         options: ['Sí.', 'Tengo una idea.', 'No.', 'Todavía no tengo definido el precio.']
                     },
                     {
                         id: 'q22', type: 'radio', text: '22. ¿Qué quieres lograr económicamente con tu proyecto?',
                         options: [
                             'Generar un ingreso adicional.', 'Convertirlo en mi principal fuente de ingresos.', 'Recuperar una inversión.',
-                            'Tener mayor independencia económica.', 'Crecer y contratar personas.', 'Crear una empresa.', 'Todavía no lo tengo claro.'
+                            'Tener mayor independencia económica.', 'Crecer y contratar personas.', 'Crear una empresa.'
                         ]
                     }
                 ]
             },
             {
-                title: "SECCIÓN 7 — ¿CÓMO FUNCIONARÁ?",
+                title: "SECCIÓN 7 — CANALES Y OPERACIÓN",
                 questions: [
                     {
                         id: 'q23', type: 'radio', text: '23. ¿Cómo entregarías tu producto o servicio?',
-                        options: ['En mi casa/local.', 'A domicilio.', 'Por envío.', 'El cliente recoge.', 'Servicio presencial.', 'Servicio en línea.', 'Una combinación.', 'Todavía no lo sé.']
+                        options: ['En mi casa/local.', 'A domicilio.', 'Por envío.', 'El cliente recoge.', 'Servicio presencial.', 'Servicio en línea.', 'Una combinación.']
                     },
                     {
                         id: 'q24', type: 'radio', text: '24. ¿Cómo recibirías los pedidos o clientes?',
-                        options: ['WhatsApp.', 'Facebook.', 'Instagram.', 'TikTok.', 'Página web.', 'Marketplace.', 'Llamadas.', 'Presencialmente.', 'Una combinación.']
+                        options: ['WhatsApp.', 'Facebook.', 'Instagram.', 'TikTok.', 'Página web.', 'Llamadas.', 'Presencialmente.', 'Una combinación.']
                     },
                     {
-                        id: 'q25', type: 'checkbox', text: '25. ¿Qué necesitas para poder comenzar o seguir funcionando? (Puedes seleccionar varias)',
+                        id: 'q25', type: 'checkbox', text: '25. ¿Qué necesitas para comenzar o seguir funcionando?',
                         options: [
-                            'Materia prima.', 'Herramientas.', 'Equipo.', 'Computadora/celular.', 'Espacio de trabajo.', 'Empaque.', 'Publicidad.', 'Proveedores.',
-                            'Capacitación.', 'Capital.', 'Permisos/formalización.', 'Más clientes.', 'Mejor organización.', 'No estoy seguro/a.'
+                            'Materia prima.', 'Herramientas/Equipo.', 'Espacio de trabajo.', 'Empaque.', 'Publicidad.', 'Proveedores.',
+                            'Capacitación.', 'Capital.', 'Permisos/formalización.', 'Más clientes.', 'Mejor organización.'
                         ]
                     }
                 ]
@@ -390,8 +421,8 @@
                     {
                         id: 'q28', type: 'checkbox', text: '28. ¿Qué crees que necesitas mejorar?',
                         options: [
-                            'Logo.', 'Colores/identidad visual.', 'Fotografías.', 'Publicaciones.', 'Videos.', 'Catálogo.', 'Descripciones de productos.',
-                            'Precios.', 'Página web.', 'WhatsApp Business.', 'Organización del contenido.', 'Todo lo anterior.', 'No estoy seguro/a.'
+                            'Logo.', 'Identidad visual/Colores.', 'Fotografías.', 'Publicaciones/Videos.', 'Catálogo.', 'Descripciones de productos.',
+                            'Precios.', 'WhatsApp Business.', 'Organización del contenido.', 'Todo lo anterior.'
                         ]
                     }
                 ]
@@ -402,27 +433,24 @@
                     {
                         id: 'q29', type: 'radio', text: '29. ¿Qué quieres conseguir con este proyecto durante los próximos 6-12 meses?', allowOther: true,
                         options: [
-                            'Conseguir mis primeros clientes.', 'Aumentar las ventas.', 'Conseguir clientes nuevos.', 'Tener presencia profesional en Internet.',
-                            'Crear una marca.', 'Aumentar mis productos/servicios.', 'Mejorar mis precios.', 'Organizar mejor mi negocio.',
-                            'Formalizar mi actividad.', 'Generar empleo.', 'Convertir mi idea en un negocio.'
+                            'Conseguir mis primeros clientes.', 'Aumentar las ventas.', 'Tener presencia profesional en Internet.',
+                            'Crear una marca.', 'Aumentar mis productos/servicios.', 'Organizar mejor mi negocio.', 'Formalizar mi actividad.'
                         ]
                     },
                     {
                         id: 'q30', type: 'radio', text: '30. ¿Cuál consideras que es actualmente tu principal dificultad?', allowOther: true,
                         options: [
                             'No sé exactamente qué vender.', 'No tengo claro quién es mi cliente.', 'No sé cómo poner precios.', 'No tengo clientes.',
-                            'Tengo clientes pero quiero más.', 'No sé cómo promocionarme.', 'No sé cómo utilizar las redes sociales.', 'Mi negocio no tiene una imagen profesional.',
-                            'No tengo suficiente capital.', 'No tengo equipo/herramientas.', 'Me cuesta organizarme.', 'Tengo demasiadas ideas y no sé por cuál empezar.',
-                            'Me cuesta explicar qué hace diferente mi negocio.'
+                            'No sé cómo promocionarme.', 'No sé cómo utilizar redes sociales.', 'Falta de capital.', 'Organización/Estrategia.'
                         ]
                     }
                 ]
             },
             {
-                title: "SECCIÓN 10 — AHORA SÍ: MI PROYECTO EN UNA SOLA IDEA",
+                title: "SECCIÓN 10 — RESUMEN EJECUTIVO",
                 questions: [
                     {
-                        id: 'q31', type: 'textarea', text: '31. Completa esta frase: Mi negocio/emprendimiento consiste en ____ y está dirigido a ___, porque quiero ayudarles a _____.',
+                        id: 'q31', type: 'textarea', text: '31. Completa esta frase: Mi negocio consiste en ____ y está dirigido a ___, porque quiero ayudarles a _____.',
                         suggestedOptions: [
                             'Consiste en venta de productos y está dirigido a familias, porque quiero ayudarles a ahorrar tiempo y dinero.',
                             'Consiste en servicios de bienestar y está dirigido a mujeres, porque quiero ayudarles a sentirse mejor.',
@@ -430,191 +458,78 @@
                         ]
                     },
                     {
-                        id: 'q32', type: 'textarea', text: '32. Ahora completa: Lo que quiero que una persona piense cuando vea mi negocio es: "____".',
-                        feedback: 'Esto les ayudará muchísimo con la identidad y comunicación.',
+                        id: 'q32', type: 'textarea', text: '32. ¿Qué quieres que piense un cliente cuando vea tu negocio?',
                         suggestedOptions: [
                             '"Tienen excelentes precios y mucha variedad, es muy fácil comprarles."',
                             '"La calidad es increíble y la atención es muy buena, confío en ellos."',
                             '"Hacen cosas únicas y personalizadas, no lo encuentro en otro lado."'
                         ]
-                    },
-                    {
-                        id: 'q33', type: 'textarea', text: '33. Si mañana tuvieras que publicar un anuncio de tu negocio, ¿qué sería lo primero que le dirías a un posible cliente?',
-                        suggestedOptions: [
-                            '¡Aprovecha nuestras promociones! Calidad garantizada a los mejores precios.',
-                            '¿Cansado de buscar y no encontrar? Nosotros tenemos exactamente lo que necesitas.',
-                            'Descubre la experiencia de comprar un producto hecho a tu medida y con dedicación.'
-                        ]
                     }
                 ]
             },
             {
-                title: "SECCIÓN FINAL — MI NIVEL DE CLARIDAD",
+                title: "SECCIÓN FINAL — EVALUACIÓN DE CLARIDAD",
                 questions: [
                     {
-                        id: 'q34', type: 'radio', text: '34. Después de responder estas preguntas, ¿qué tan claro tienes tu proyecto?',
+                        id: 'q34', type: 'radio', text: '34. Después de responder estas preguntas, ¿en qué nivel de claridad sientes que está tu negocio?',
                         options: [
-                            '1️⃣ Todavía estoy muy confundido/a.', '2️⃣ Tengo una idea, pero necesito ordenarla.', '3️⃣ Ya entiendo bastante bien mi proyecto.',
-                            '4️⃣ Tengo bastante claro qué quiero hacer y a quién quiero vender.', '5️⃣ Tengo claro mi negocio y ahora necesito aprender a comunicarlo y hacerlo crecer.'
+                            '1️⃣ Nivel 1: Estoy en fase de idea inicial (confundido/a).',
+                            '2️⃣ Nivel 2: Tengo la idea pero necesito estructurarla.',
+                            '3️⃣ Nivel 3: Entiendo mi negocio y sus bases principales.',
+                            '4️⃣ Nivel 4: Tengo claro el modelo y a quién venderle.',
+                            '5️⃣ Nivel 5: Negocio definido, listo para escalar y comunicar profesionalmente.'
                         ]
                     },
                     {
-                        id: 'q35', type: 'checkbox', text: '35. ¿Qué necesitas trabajar primero en la próxima clase?',
+                        id: 'q35', type: 'checkbox', text: '35. ¿Qué necesitas trabajar prioritariamente?',
                         options: [
-                            'Definir mi negocio.', 'Definir mi cliente.', 'Definir mis productos/servicios.', 'Definir mis precios.', 'Crear mi identidad visual.',
-                            'Crear contenido.', 'Aprender Canva.', 'Aprender a utilizar IA.', 'Crear mi catálogo.', 'Crear publicidad.', 'Organizar mi estrategia de ventas.', 'No estoy seguro/a.'
+                            'Definir mi negocio.', 'Definir mi cliente.', 'Definir precios.', 'Identidad visual/Logo.',
+                            'Crear contenido/Redes.', 'Catálogo digital.', 'Estrategia de ventas.', 'Aprender herramientas IA/Canva.'
                         ]
                     }
                 ]
             }
         ];
 
+        // Estado de la app
+        let app, db, auth, currentUser;
         let currentSectionIndex = 0;
         let userAnswers = {};
-        
-        // --- STREAMING_CHUNK:Lógica para reconocimiento de voz y sugerencias ---
-        window.applySuggestion = function(inputId, text) {
-            const input = document.querySelector(`[data-input="${inputId}"]`);
-            if(input) {
-                input.value = text;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        };
+        let activeTab = 'plan'; // Por defecto muestra el Plan de Acción con el Nivel
+        let currentTimestamp = Date.now();
+        let allResponses = [];
 
-        // Instancia global para evitar pérdida de referencia por recolector de basura o doble toque
-        let activeRecognition = null;
-
-        window.toggleMic = function(inputId, btn) {
-            const input = document.querySelector(`[data-input="${inputId}"]`);
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
-            if (!SpeechRecognition) {
-                alert("Tu navegador no soporta el reconocimiento de voz nativo. Por favor, asegúrate de usar Google Chrome o Safari en un entorno seguro (HTTPS).");
-                return;
-            }
-
-            // Si ya hay una instancia activa, la detenemos
-            if (activeRecognition) {
-                try {
-                    activeRecognition.stop();
-                } catch(e) {}
-                activeRecognition = null;
-            }
-
-            // Si este botón ya estaba grabando, lo apagamos
-            if (btn.classList.contains('recording')) {
-                btn.classList.remove('text-red-500', 'animate-pulse', 'recording');
-                btn.classList.add('text-gray-400');
-                return;
-            }
-
-            // Apagar otros botones que pudieran estar grabando
-            document.querySelectorAll('.recording').forEach(b => {
-                b.classList.remove('text-red-500', 'animate-pulse', 'recording');
-                b.classList.add('text-gray-400');
-            });
-
-            try {
-                const recognition = new SpeechRecognition();
-                activeRecognition = recognition;
-                recognition.lang = 'es-ES';
-                recognition.interimResults = true; // Permite ver resultados parciales
-                recognition.maxAlternatives = 1;
-
-                let finalTranscriptChunk = '';
-
-                recognition.onstart = function() {
-                    btn.classList.add('text-red-500', 'animate-pulse', 'recording');
-                    btn.classList.remove('text-gray-400');
-                };
-
-                recognition.onresult = function(event) {
-                    let interim = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscriptChunk += event.results[i][0].transcript;
-                        } else {
-                            interim += event.results[i][0].transcript;
-                        }
-                    }
-                    
-                    const textToAdd = finalTranscriptChunk || interim;
-                    if (textToAdd) {
-                        const currentVal = input.value.trim();
-                        // Evitar duplicados exactos si el evento rebota
-                        input.value = currentVal ? (currentVal.endsWith(textToAdd) ? currentVal : currentVal + " " + textToAdd) : textToAdd;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                };
-
-                recognition.onerror = function(event) {
-                    console.warn("Aviso de micrófono: ", event.error);
-                    if(event.error === 'not-allowed') {
-                        alert("Permiso de micrófono denegado. Por favor, habilítalo en los ajustes de tu navegador.");
-                    }
-                };
-
-                recognition.onend = function() {
-                    btn.classList.remove('text-red-500', 'animate-pulse', 'recording');
-                    btn.classList.add('text-gray-400');
-                    if (activeRecognition === recognition) {
-                        activeRecognition = null;
-                    }
-                };
-
-                recognition.start();
-            } catch (err) {
-                console.error("Error iniciando reconocimiento de voz:", err);
-                btn.classList.remove('text-red-500', 'animate-pulse', 'recording');
-                btn.classList.add('text-gray-400');
-                alert("No se pudo iniciar el micrófono automáticamente.");
-            }
-        };
-
-        // --- STREAMING_CHUNK:Configuración e inicialización de Firebase ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        let app, db, auth, currentUser;
-
-        // Elementos DOM
-        const elLoading = document.getElementById('loading-view');
-        const elForm = document.getElementById('form-view');
-        const elResults = document.getElementById('results-view');
-        const elAdmin = document.getElementById('admin-view');
-        const elQuestionContainer = document.getElementById('question-container');
-        const elBtnNext = document.getElementById('btn-next');
-        const elBtnPrev = document.getElementById('btn-prev');
-        const elBtnSubmit = document.getElementById('btn-submit');
-        const elProgressBar = document.getElementById('progress-bar');
-        const elStepIndicator = document.getElementById('step-indicator');
-        
+        // Inicializar Firebase
         async function initFirebase() {
-            if (!firebaseConfig) {
-                console.error("No se encontró configuración de Firebase.");
-                document.getElementById('user-status').innerHTML = "<i class='fa-solid fa-triangle-exclamation text-red-300'></i> Uso Local";
-                return false;
-            }
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
+                // Escuchar cambios de estado de autenticación
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    const statusEl = document.getElementById('user-status');
+                    if (user && !user.isAnonymous) {
+                        statusEl.innerHTML = `<span class="bg-green-500/20 text-green-200 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-user-shield mr-1"></i> Admin: ${user.email}</span>`;
+                    } else {
+                        statusEl.innerHTML = `<span class="bg-indigo-500/30 text-indigo-100 text-xs px-2.5 py-1 rounded-full"><i class="fa-solid fa-signal mr-1"></i> Conectado a Firestore</span>`;
+                    }
+                });
+
+                // Si no hay usuario, iniciamos sesión anónima para permitir guardar encuestas
+                if (!auth.currentUser) {
                     await signInAnonymously(auth);
                 }
-                currentUser = auth.currentUser;
-                document.getElementById('user-status').innerHTML = `<i class="fa-solid fa-circle-check text-green-300"></i> Listo`;
                 return true;
             } catch (error) {
                 console.error("Error inicializando Firebase:", error);
-                document.getElementById('user-status').innerHTML = "<i class='fa-solid fa-triangle-exclamation text-red-300'></i> Error Auth";
+                document.getElementById('user-status').innerHTML = `<span class="text-red-300 text-xs"><i class="fa-solid fa-triangle-exclamation"></i> Error de conexión</span>`;
                 return false;
             }
         }
 
-        // --- STREAMING_CHUNK:Renderizado de la interfaz y cuestionario ---
+        // --- RENDERIZADO DEL CUESTIONARIO ---
         function renderSection() {
             const section = questionnaire[currentSectionIndex];
             let html = `
@@ -629,35 +544,19 @@
                 html += `<div class="bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm question-block" data-id="${q.id}">
                             <label class="block text-lg font-semibold text-gray-800 mb-4">${q.text} ${q.required ? '<span class="text-red-500">*</span>' : ''}</label>`;
                 
-                if (q.type === 'text') {
+                if (q.type === 'text' || q.type === 'textarea') {
                     const val = userAnswers[q.id] || '';
+                    const isTextArea = q.type === 'textarea';
                     html += `<div class="relative mb-2">
-                                <input type="text" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta o usa el micrófono..." data-input="${q.id}" value="${val}">
-                                <button type="button" onclick="window.toggleMic('${q.id}', this)" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors p-2" title="Dictar por voz">
+                                ${isTextArea 
+                                    ? `<textarea rows="4" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta o dicta..." data-input="${q.id}">${val}</textarea>`
+                                    : `<input type="text" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta..." data-input="${q.id}" value="${val}">`
+                                }
+                                <button type="button" onclick="window.toggleMic('${q.id}', this)" class="absolute right-3 ${isTextArea ? 'top-3' : 'top-1/2 transform -translate-y-1/2'} text-gray-400 hover:text-indigo-600 transition-colors p-2" title="Dictar por voz">
                                     <i class="fa-solid fa-microphone text-lg pointer-events-none"></i>
                                 </button>
                              </div>`;
                              
-                    // Sugerencias
-                    if (q.suggestedOptions) {
-                        html += `<div class="mt-2 flex flex-col sm:flex-row flex-wrap gap-2">`;
-                        q.suggestedOptions.forEach(opt => {
-                            html += `<button type="button" onclick="window.applySuggestion('${q.id}', '${opt.replace(/'/g, "\\'")}')" class="text-xs sm:text-sm bg-white text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-colors text-left flex-1 min-w-[200px] shadow-sm">
-                                        <i class="fa-regular fa-hand-pointer mr-1"></i> ${opt}
-                                     </button>`;
-                        });
-                        html += `</div>`;
-                    }
-                } else if (q.type === 'textarea') {
-                    const val = userAnswers[q.id] || '';
-                    html += `<div class="relative mb-2">
-                                <textarea rows="4" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta o usa el micrófono..." data-input="${q.id}">${val}</textarea>
-                                <button type="button" onclick="window.toggleMic('${q.id}', this)" class="absolute right-3 top-3 text-gray-400 hover:text-indigo-600 transition-colors p-2" title="Dictar por voz">
-                                    <i class="fa-solid fa-microphone text-lg pointer-events-none"></i>
-                                </button>
-                             </div>`;
-                             
-                    // Sugerencias
                     if (q.suggestedOptions) {
                         html += `<div class="mt-2 flex flex-col sm:flex-row flex-wrap gap-2">`;
                         q.suggestedOptions.forEach(opt => {
@@ -671,8 +570,8 @@
                     const inputType = q.type;
                     const nameAttr = inputType === 'radio' ? `name="${q.id}"` : `name="${q.id}_chk"`;
                     html += `<div class="space-y-3">`;
+                    
                     q.options.forEach((opt, idx) => {
-                        const optId = `${q.id}_opt_${idx}`;
                         let isChecked = false;
                         if (inputType === 'radio') {
                             isChecked = userAnswers[q.id] === opt;
@@ -731,31 +630,29 @@
             });
 
             html += `</div>`;
-            elQuestionContainer.innerHTML = html;
+            document.getElementById('question-container').innerHTML = html;
 
-            // Actualizar UI de botones y progreso
+            // Actualizar botones y barra de progreso
             const progress = ((currentSectionIndex) / (questionnaire.length - 1)) * 100;
-            elProgressBar.style.width = `${progress}%`;
-            elStepIndicator.innerText = `Paso ${currentSectionIndex + 1} de ${questionnaire.length}`;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('step-indicator').innerText = `Paso ${currentSectionIndex + 1} de ${questionnaire.length}`;
 
-            elBtnPrev.style.display = currentSectionIndex === 0 ? 'none' : 'block';
+            document.getElementById('btn-prev').style.display = currentSectionIndex === 0 ? 'none' : 'block';
             
             if (currentSectionIndex === questionnaire.length - 1) {
-                elBtnNext.classList.add('hidden');
-                elBtnSubmit.classList.remove('hidden');
+                document.getElementById('btn-next').classList.add('hidden');
+                document.getElementById('btn-submit').classList.remove('hidden');
             } else {
-                elBtnNext.classList.remove('hidden');
-                elBtnSubmit.classList.add('hidden');
+                document.getElementById('btn-next').classList.remove('hidden');
+                document.getElementById('btn-submit').classList.add('hidden');
             }
 
             attachInputListeners();
-            elQuestionContainer.scrollTop = 0;
+            document.getElementById('question-container').scrollTop = 0;
         }
 
-        // --- STREAMING_CHUNK:Lógica para validación y recolección de respuestas ---
         function attachInputListeners() {
-            // Animaciones CSS para checks y radios personalizados
-            const inputs = elQuestionContainer.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+            const inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
             inputs.forEach(input => {
                 input.addEventListener('change', (e) => {
                     if(e.target.type === 'radio') {
@@ -768,11 +665,8 @@
                     
                     const indicator = e.target.nextElementSibling.firstElementChild;
                     if(indicator) {
-                        if(e.target.checked) {
-                            indicator.classList.add('scale-100');
-                        } else {
-                            indicator.classList.remove('scale-100');
-                        }
+                        if(e.target.checked) indicator.classList.add('scale-100');
+                        else indicator.classList.remove('scale-100');
                     }
                 });
                 
@@ -782,8 +676,7 @@
                 }
             });
 
-            // Manejo de la opción "Otro"
-            const otherTriggers = elQuestionContainer.querySelectorAll('[data-other-trigger]');
+            const otherTriggers = document.querySelectorAll('[data-other-trigger]');
             otherTriggers.forEach(trigger => {
                 trigger.addEventListener('change', (e) => {
                     const id = e.target.getAttribute('data-other-trigger');
@@ -804,38 +697,34 @@
 
             section.questions.forEach(q => {
                 if (q.type === 'text' || q.type === 'textarea') {
-                    const input = elQuestionContainer.querySelector(`[data-input="${q.id}"]`);
-                    userAnswers[q.id] = input.value.trim();
-                    if (q.required && !userAnswers[q.id]) isValid = false;
+                    const input = document.querySelector(`[data-input="${q.id}"]`);
+                    if(input) {
+                        userAnswers[q.id] = input.value.trim();
+                        if (q.required && !userAnswers[q.id]) isValid = false;
+                    }
                 } else if (q.type === 'radio') {
-                    const checked = elQuestionContainer.querySelector(`input[name="${q.id}"]:checked`);
+                    const checked = document.querySelector(`input[name="${q.id}"]:checked`);
                     if (checked) {
                         if (checked.value === '__other__') {
                             const otherInput = document.getElementById(`other_input_${q.id}`);
-                            userAnswers[q.id] = otherInput.value.trim() || 'Otro (No especificado)';
+                            userAnswers[q.id] = otherInput ? (otherInput.value.trim() || 'Otro') : 'Otro';
                         } else {
                             userAnswers[q.id] = checked.value;
                         }
-                    } else {
-                        delete userAnswers[q.id];
-                        if (q.required) isValid = false;
-                    }
+                    } else if (q.required) isValid = false;
                 } else if (q.type === 'checkbox') {
-                    const checkeds = elQuestionContainer.querySelectorAll(`input[name="${q.id}_chk"]:checked`);
+                    const checkeds = document.querySelectorAll(`input[name="${q.id}_chk"]:checked`);
                     let vals = [];
                     checkeds.forEach(cb => {
                         if (cb.value === '__other__') {
                             const otherInput = document.getElementById(`other_input_${q.id}`);
-                            vals.push(otherInput.value.trim() || 'Otro (No especificado)');
+                            vals.push(otherInput ? (otherInput.value.trim() || 'Otro') : 'Otro');
                         } else {
                             vals.push(cb.value);
                         }
                     });
-                    if(vals.length > 0) {
-                        userAnswers[q.id] = vals;
-                    } else {
-                        delete userAnswers[q.id];
-                    }
+                    if(vals.length > 0) userAnswers[q.id] = vals;
+                    else delete userAnswers[q.id];
                     if (q.required && vals.length === 0) isValid = false;
                 }
             });
@@ -843,10 +732,10 @@
             return isValid;
         }
 
-        // --- STREAMING_CHUNK:Controladores de botones y envío del formulario ---
-        elBtnNext.addEventListener('click', () => {
+        // --- NAVEGACIÓN DEL WIZARD ---
+        document.getElementById('btn-next').addEventListener('click', () => {
             if (!saveCurrentSectionData()) {
-                alert("Por favor completa los campos obligatorios (*).");
+                alert("Por favor completa los campos obligatorios antes de continuar.");
                 return;
             }
             if (currentSectionIndex < questionnaire.length - 1) {
@@ -855,46 +744,188 @@
             }
         });
 
-        elBtnPrev.addEventListener('click', () => {
-            saveCurrentSectionData(); // Guardar lo que lleve sin validar
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            saveCurrentSectionData();
             if (currentSectionIndex > 0) {
                 currentSectionIndex--;
                 renderSection();
             }
         });
 
-        elBtnSubmit.addEventListener('click', async () => {
+        // --- ENVÍO DE DATOS A FIRESTORE ---
+        document.getElementById('btn-submit').addEventListener('click', async () => {
             if (!saveCurrentSectionData()) {
-                alert("Por favor completa los campos obligatorios antes de finalizar.");
+                alert("Por favor completa los campos obligatorios.");
                 return;
             }
 
-            elBtnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-            elBtnSubmit.disabled = true;
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando en Firestore...';
+            btnSubmit.disabled = true;
+            currentTimestamp = Date.now();
 
             try {
-                if(currentUser && db) {
-                    // GUARDAR EN FIREBASE
-                    // REGLA: ALWAYS use /artifacts/{appId}/public/data/{collectionName} for public data
-                    const responsesRef = collection(db, 'artifacts', appId, 'public', 'data', 'form_responses');
-                    await addDoc(responsesRef, {
-                        userId: currentUser.uid,
-                        participantName: userAnswers['q_name'] || 'Anónimo',
-                        answers: userAnswers,
-                        timestamp: Date.now()
-                    });
-                }
+                // Guardar en la colección form_responses de Firestore
+                const responsesRef = collection(db, COLLECTION_NAME);
+                await addDoc(responsesRef, {
+                    participantName: userAnswers['q_name'] || 'Anónimo',
+                    answers: userAnswers,
+                    timestamp: currentTimestamp
+                });
                 
-                showResults(userAnswers, true);
+                showResults(userAnswers);
             } catch (error) {
-                console.error("Error al guardar:", error);
-                alert("Hubo un problema guardando tus datos, pero aún puedes ver tu PDF.");
-                showResults(userAnswers, true); // Mostrar resultados de todos modos
+                console.error("Error guardando datos en Firestore:", error);
+                alert("Hubo un inconveniente al guardar en la nube, pero tu informe se generará localmente.");
+                showResults(userAnswers);
             }
         });
 
-        // --- STREAMING_CHUNK:Generador HTML para la ficha PDF (Tipo CV) ---
-        // --- FUNCIÓN PARA GENERAR EL DISEÑO TIPO CURRÍCULUM ---
+        // --- GENERADOR DEL PLAN DE ACCIÓN Y NIVEL DEL NEGOCIO ---
+        function generateActionPlanHtml(answersToDisplay, dateTimestamp) {
+            const dateStr = new Date(dateTimestamp).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            const name = answersToDisplay['q_name'] || 'Emprendedor/a';
+            const projectStage = answersToDisplay['q1'] || 'No especificado';
+            const mainDifficulty = answersToDisplay['q30'] || 'Definir el rumbo estratégico';
+            const mainGoal = answersToDisplay['q29'] || 'Impulsar el proyecto';
+            const salesChannel = answersToDisplay['q24'] || 'Por definir';
+            const businessModel = answersToDisplay['q31'] || answersToDisplay['q4'] || 'Proyecto en desarrollo';
+            const needsWork = answersToDisplay['q35'] || ['Organización y estrategia'];
+            
+            // Detección y cálculo del NIVEL DEL NEGOCIO basado en la pregunta 34
+            const rawLevel = answersToDisplay['q34'] || '';
+            let levelBadge = 'bg-indigo-50 border-indigo-200 text-indigo-800';
+            let levelTitle = 'Nivel 1: Idea Inicial';
+            let levelDesc = 'Tu proyecto está naciendo. Tu prioridad número 1 es estructurar el concepto y validar qué problema resuelves.';
+            let levelProgress = '20%';
+
+            if (rawLevel.includes('1️⃣') || rawLevel.includes('confundido')) {
+                levelTitle = 'Nivel 1: Explorador (Idea Inicial)';
+                levelBadge = 'bg-red-50 border-red-200 text-red-800';
+                levelDesc = 'Estás en la etapa de descubrimiento. Tu enfoque debe estar en definir qué vender y a quién.';
+                levelProgress = '20%';
+            } else if (rawLevel.includes('2️⃣') || rawLevel.includes('estructurarla')) {
+                levelTitle = 'Nivel 2: Estructuración de Oferta';
+                levelBadge = 'bg-orange-50 border-orange-200 text-orange-800';
+                levelDesc = 'Tienes la idea clara, ahora necesitas empaquetar tu producto/servicio con precios y costos precisos.';
+                levelProgress = '40%';
+            } else if (rawLevel.includes('3️⃣') || rawLevel.includes('bases principales')) {
+                levelTitle = 'Nivel 3: Validación Inicial';
+                levelBadge = 'bg-yellow-50 border-yellow-200 text-yellow-800';
+                levelDesc = 'Conoces las bases de tu propuesta. El siguiente paso es salir a buscar tus primeros clientes reales.';
+                levelProgress = '60%';
+            } else if (rawLevel.includes('4️⃣') || rawLevel.includes('a quién venderle')) {
+                levelTitle = 'Nivel 4: Posicionamiento Comercial';
+                levelBadge = 'bg-blue-50 border-blue-200 text-blue-800';
+                levelDesc = 'Tu negocio funciona y sabes cuál es tu cliente. Debes profesionalizar tu marca y optimizar ventas.';
+                levelProgress = '80%';
+            } else if (rawLevel.includes('5️⃣') || rawLevel.includes('escalar')) {
+                levelTitle = 'Nivel 5: Listo para Escalar';
+                levelBadge = 'bg-emerald-50 border-emerald-200 text-emerald-800';
+                levelDesc = 'Tienes bases sólidas. Tu reto principal es crear sistemas, automatizar y expandir tu alcance digital.';
+                levelProgress = '100%';
+            }
+
+            let needsListHtml = '';
+            if (Array.isArray(needsWork)) {
+                needsListHtml = needsWork.map(n => `<li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-indigo-600"></i> <span>${n}</span></li>`).join('');
+            } else {
+                needsListHtml = `<li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-indigo-600"></i> <span>${needsWork}</span></li>`;
+            }
+
+            return `
+                <div class="bg-white w-full rounded-2xl shadow-xl overflow-hidden border border-gray-100 p-6 md:p-10" style="min-height: 800px;">
+                    
+                    <!-- Encabezado -->
+                    <div class="border-b border-gray-200 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Plan de Acción Estratégico</span>
+                            <h2 class="text-3xl font-bold text-gray-800 mt-2">${name}</h2>
+                            <p class="text-gray-500 text-sm mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> Generado el ${dateStr} &bull; Prodigital</p>
+                        </div>
+                        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-indigo-900 max-w-xs w-full">
+                            <p class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1"><i class="fa-solid fa-bullseye mr-1"></i> Objetivo Principal</p>
+                            <p class="text-sm font-medium leading-snug">${mainGoal}</p>
+                        </div>
+                    </div>
+
+                    <!-- TARJETA DESTACADA: NIVEL DEL NEGOCIO -->
+                    <div class="border-2 ${levelBadge} p-6 rounded-2xl mb-8 shadow-sm relative overflow-hidden">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-widest opacity-80">Diagnóstico de Madurez</span>
+                                <h3 class="text-2xl font-extrabold mt-1">${levelTitle}</h3>
+                            </div>
+                            <div class="w-full md:w-48 bg-white/60 rounded-full h-4 overflow-hidden border border-gray-200">
+                                <div class="bg-indigo-600 h-full transition-all duration-500" style="width: ${levelProgress}"></div>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium leading-relaxed">${levelDesc}</p>
+                    </div>
+
+                    <!-- Resumen del Negocio -->
+                    <div class="bg-slate-50 p-5 rounded-xl border border-gray-200 mb-8">
+                        <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2"><i class="fa-solid fa-lightbulb text-indigo-600 mr-2"></i> Definición Actual de tu Negocio</h4>
+                        <p class="text-gray-800 text-base font-medium mb-3">"${businessModel}"</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                <span class="block text-xs text-gray-400 uppercase font-semibold">Punto de Partida</span>
+                                <span class="text-gray-700 font-medium">${projectStage}</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                <span class="block text-xs text-gray-400 uppercase font-semibold">Reto Principal</span>
+                                <span class="text-gray-700 font-medium">${mainDifficulty}</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                <span class="block text-xs text-gray-400 uppercase font-semibold">Canal Preferido</span>
+                                <span class="text-gray-700 font-medium">${salesChannel}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hoja de Ruta -->
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center"><i class="fa-solid fa-route text-indigo-600 mr-3"></i> Hoja de Ruta Sugerida</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Paso 1 -->
+                        <div class="border-l-4 border-indigo-600 bg-indigo-50/40 p-5 rounded-r-xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold bg-indigo-600 text-white px-2.5 py-1 rounded">PASO 1: Fundamentos (Semanas 1-2)</span>
+                            </div>
+                            <h4 class="text-base font-bold text-gray-800 mb-1">Aclarar Propuesta de Valor y Costos</h4>
+                            <p class="text-gray-600 text-sm">Estructurar la descripción formal de tu servicio/producto y fijar tus precios calculando costos reales.</p>
+                        </div>
+
+                        <!-- Paso 2 -->
+                        <div class="border-l-4 border-blue-500 bg-blue-50/40 p-5 rounded-r-xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">PASO 2: Prioridades Seleccionadas (Semanas 3-4)</span>
+                            </div>
+                            <h4 class="text-base font-bold text-gray-800 mb-2">Trabajo Enfocado en tus Necesidades</h4>
+                            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+                                ${needsListHtml}
+                            </ul>
+                        </div>
+
+                        <!-- Paso 3 -->
+                        <div class="border-l-4 border-emerald-500 bg-emerald-50/40 p-5 rounded-r-xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold bg-emerald-600 text-white px-2.5 py-1 rounded">PASO 3: Comercialización (Mes 2 en adelante)</span>
+                            </div>
+                            <h4 class="text-base font-bold text-gray-800 mb-1">Activación de Ventas por ${salesChannel}</h4>
+                            <p class="text-gray-600 text-sm">Lanzamiento de ofertas, atención al cliente y solicitud de testimonios para generar tracción.</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
+                        &copy; 2026 Prodigital &bull; Documento generado automáticamente con base en el diagnóstico del participante.
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- GENERADOR DE FICHA DIAGNÓSTICA ---
         function generateCVHtml(answersToDisplay, dateTimestamp) {
             const dateStr = new Date(dateTimestamp).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
             
@@ -910,7 +941,7 @@
                     if (ans && (Array.isArray(ans) ? ans.length > 0 : ans.toString().trim() !== '')) {
                         hasAnswers = true;
                         sectionHtml += `
-                            <div class="mb-3 break-inside-avoid">
+                            <div class="mb-3">
                                 <p class="font-semibold text-gray-800 text-sm mb-1">${q.text.replace(/^\d+\.\s*/, '')}</p>
                                 <div class="text-gray-700 text-sm bg-gray-50/50 p-2.5 rounded-lg border-l-4 border-indigo-400">
                                     ${Array.isArray(ans) ? `<ul class="list-disc list-inside space-y-1">${ans.map(a => `<li>${a}</li>`).join('')}</ul>` : `<p>${ans}</p>`}
@@ -926,30 +957,23 @@
 
             return `
                 <div class="flex flex-col md:flex-row bg-white w-full rounded-2xl shadow-xl overflow-hidden border border-gray-100" style="min-height: 800px;">
-                    <!-- Columna Izquierda (Perfil) -->
                     <div class="bg-slate-50 md:w-1/3 p-8 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col items-center text-center">
-                        <div class="w-28 h-28 bg-indigo-600 text-white rounded-full flex items-center justify-center text-5xl mb-5 shadow-lg border-4 border-indigo-100">
+                        <div class="w-24 h-24 bg-indigo-600 text-white rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg border-4 border-indigo-100">
                             <i class="fa-solid fa-user-tie"></i>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800 mb-1 leading-tight">${answersToDisplay['q_name'] || 'Participante'}</h2>
-                        <p class="text-indigo-600 font-bold mb-6 tracking-wide text-sm uppercase">Proyecto Emprendedor</p>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-1">${answersToDisplay['q_name'] || 'Participante'}</h2>
+                        <p class="text-indigo-600 font-bold mb-6 text-xs uppercase tracking-wider">Ficha Diagnóstica</p>
                         
                         <div class="w-full h-px bg-gray-200 mb-6"></div>
                         
-                        <div class="space-y-4 text-sm text-gray-700 w-full text-left">
-                            <p class="flex items-center bg-white p-2 rounded border border-gray-100 shadow-sm"><i class="fa-solid fa-calendar-day w-6 text-indigo-500 text-center mr-2"></i> ${dateStr}</p>
-                            <p class="flex items-center bg-white p-2 rounded border border-gray-100 shadow-sm"><i class="fa-solid fa-building w-6 text-indigo-500 text-center mr-2"></i> Prodigital</p>
-                            <p class="flex items-center bg-white p-2 rounded border border-gray-100 shadow-sm"><i class="fa-solid fa-file-signature w-6 text-indigo-500 text-center mr-2"></i> Ficha Diagnóstica</p>
-                        </div>
-                        
-                        <div class="mt-auto pt-10 text-xs text-gray-400 font-medium text-center w-full">
-                            &copy; 2026 Prodigital.<br>Todos los derechos reservados.
+                        <div class="space-y-3 text-sm text-gray-700 w-full text-left">
+                            <p class="flex items-center bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm"><i class="fa-solid fa-calendar-day w-6 text-indigo-500 text-center mr-2"></i> ${dateStr}</p>
+                            <p class="flex items-center bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm"><i class="fa-solid fa-building w-6 text-indigo-500 text-center mr-2"></i> Prodigital</p>
                         </div>
                     </div>
                     
-                    <!-- Columna Derecha (Contenido Principal) -->
                     <div class="md:w-2/3 p-8 bg-white">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center pb-4 border-b border-gray-100"><i class="fa-solid fa-clipboard-list text-indigo-600 mr-3"></i> Perfil del Proyecto</h3>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-6 pb-4 border-b border-gray-100"><i class="fa-solid fa-clipboard-list text-indigo-600 mr-3"></i> Respuestas Detalladas</h3>
                         <div class="space-y-2">
                             ${contentHtml}
                         </div>
@@ -958,86 +982,130 @@
             `;
         }
 
-        // --- STREAMING_CHUNK:Lógica para mostrar resultados y exportar a PDF ---
-        function showResults(answersToDisplay, isCurrentUser) {
-            elForm.classList.add('hidden');
-            elAdmin.classList.add('hidden');
-            elResults.classList.remove('hidden');
+        // --- PESTAÑAS DE RESULTADOS ---
+        window.switchResultTab = function(tab) {
+            activeTab = tab;
+            const btnFicha = document.getElementById('tab-ficha');
+            const btnPlan = document.getElementById('tab-plan');
+            
+            if (tab === 'plan') {
+                btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm";
+                btnFicha.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors";
+                document.getElementById('printable-area').innerHTML = generateActionPlanHtml(userAnswers, currentTimestamp);
+            } else {
+                btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm";
+                btnPlan.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors";
+                document.getElementById('printable-area').innerHTML = generateCVHtml(userAnswers, currentTimestamp);
+            }
+        };
 
-            // Renderizar usando la plantilla de CV
-            document.getElementById('printable-area').innerHTML = generateCVHtml(answersToDisplay, Date.now());
+        function showResults(answersToDisplay) {
+            document.getElementById('form-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.add('hidden');
+            document.getElementById('results-view').classList.remove('hidden');
+            
+            window.switchResultTab('plan');
         }
 
+        // Exportar a PDF
         document.getElementById('btn-export-pdf').addEventListener('click', () => {
             const element = document.getElementById('printable-area');
+            const prefix = activeTab === 'plan' ? 'Plan_De_Accion' : 'Ficha_Diagnostica';
             const opt = {
-                margin:       10,
-                filename:     `Diagnostico_${userAnswers['q_name'] || 'Proyecto'}.pdf`,
+                margin:       8,
+                filename:     `${prefix}_${(userAnswers['q_name'] || 'Emprendedor').replace(/\s+/g, '_')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             
             const btn = document.getElementById('btn-export-pdf');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generando...';
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generando PDF...';
             
             html2pdf().set(opt).from(element).save().then(()=>{
-                btn.innerHTML = originalText;
+                btn.innerHTML = orig;
             });
         });
 
+        // Reiniciar Cuestionario
         document.getElementById('btn-restart').addEventListener('click', () => {
             userAnswers = {};
             currentSectionIndex = 0;
-            elResults.classList.add('hidden');
-            elForm.classList.remove('hidden');
-            elBtnSubmit.innerHTML = 'Finalizar <i class="fa-solid fa-check ml-2"></i>';
-            elBtnSubmit.disabled = false;
+            document.getElementById('results-view').classList.add('hidden');
+            document.getElementById('form-view').classList.remove('hidden');
+            document.getElementById('btn-submit').innerHTML = 'Finalizar <i class="fa-solid fa-check ml-2"></i>';
+            document.getElementById('btn-submit').disabled = false;
             renderSection();
         });
 
-        // --- STREAMING_CHUNK:Configurando panel de administración (Admin) ---
+        // --- SISTEMA ADMINISTRATIVO CON FIREBASE AUTH ---
         const btnSecretAdmin = document.getElementById('btn-secret-admin');
         const adminModal = document.getElementById('admin-modal');
+        const adminEmail = document.getElementById('admin-email');
         const adminPassword = document.getElementById('admin-password');
         
         btnSecretAdmin.addEventListener('click', () => {
-            adminModal.classList.remove('hidden');
-            adminPassword.value = '';
-            document.getElementById('admin-error').classList.add('hidden');
+            if (currentUser && !currentUser.isAnonymous) {
+                // Si ya está autenticado como Admin con email, entra directamente
+                openAdminPanel();
+            } else {
+                adminModal.classList.remove('hidden');
+                document.getElementById('admin-error').classList.add('hidden');
+            }
         });
 
         document.getElementById('btn-cancel-admin').addEventListener('click', () => {
             adminModal.classList.add('hidden');
         });
 
-        document.getElementById('btn-login-admin').addEventListener('click', () => {
-            if (adminPassword.value === 'admin123') {
+        document.getElementById('btn-login-admin').addEventListener('click', async () => {
+            const email = adminEmail.value.trim();
+            const password = adminPassword.value.trim();
+            const btnLogin = document.getElementById('btn-login-admin');
+
+            if(!email || !password) {
+                document.getElementById('admin-error').innerText = "Ingresa correo y contraseña.";
+                document.getElementById('admin-error').classList.remove('hidden');
+                return;
+            }
+
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+
+            try {
+                // Iniciar sesión en Firebase Auth con correo y contraseña
+                await signInWithEmailAndPassword(auth, email, password);
                 adminModal.classList.add('hidden');
                 openAdminPanel();
-            } else {
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                document.getElementById('admin-error').innerText = "Credenciales inválidas o sin acceso.";
                 document.getElementById('admin-error').classList.remove('hidden');
+            } finally {
+                btnLogin.innerHTML = 'Entrar';
             }
         });
 
-        let allResponses = [];
-
         async function openAdminPanel() {
-            elForm.classList.add('hidden');
-            elResults.classList.add('hidden');
-            elAdmin.classList.remove('hidden');
+            document.getElementById('form-view').classList.add('hidden');
+            document.getElementById('results-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.remove('hidden');
             document.getElementById('admin-list-container').classList.remove('hidden');
             document.getElementById('admin-detail-container').classList.add('hidden');
+            
+            if(currentUser) {
+                document.getElementById('admin-logged-email').innerText = `Sesión activa: ${currentUser.email || 'Admin'}`;
+            }
 
+            await loadAdminData();
+        }
+
+        async function loadAdminData() {
             const tbody = document.getElementById('admin-table-body');
-            tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-indigo-600 text-2xl"></i><br>Cargando datos...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-indigo-600 text-2xl"></i><br><span class="text-sm text-gray-500 mt-2 block">Cargando registros de Firestore...</span></td></tr>`;
 
             try {
-                if(!db) { throw new Error("Base de datos no inicializada"); }
-                
-                const responsesRef = collection(db, 'artifacts', appId, 'public', 'data', 'form_responses');
-                // Fetch all and sort in memory
+                const responsesRef = collection(db, COLLECTION_NAME);
                 const snapshot = await getDocs(responsesRef);
                 
                 allResponses = [];
@@ -1045,15 +1113,15 @@
                     allResponses.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Sort by timestamp descending (newest first)
-                allResponses.sort((a, b) => b.timestamp - a.timestamp);
-
+                allResponses.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 renderAdminTable();
             } catch (error) {
-                console.error("Error fetching admin data", error);
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-red-500">Error al cargar datos. Verifica conexión o permisos de base de datos.</td></tr>`;
+                console.error("Error leyendo Firestore:", error);
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-red-500 text-sm">Error de permisos al leer la base de datos Firestore. Verifica las Reglas de Seguridad.</td></tr>`;
             }
         }
+
+        document.getElementById('btn-refresh-admin').addEventListener('click', loadAdminData);
 
         function renderAdminTable() {
             const tbody = document.getElementById('admin-table-body');
@@ -1068,14 +1136,14 @@
             emptyState.classList.add('hidden');
             let html = '';
             allResponses.forEach((resp, index) => {
-                const date = new Date(resp.timestamp).toLocaleString('es-ES');
+                const date = resp.timestamp ? new Date(resp.timestamp).toLocaleString('es-ES') : 'Sin fecha';
                 html += `
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="p-4 font-medium text-gray-800">${resp.participantName || 'Anónimo'}</td>
                         <td class="p-4 text-gray-500 text-sm">${date}</td>
                         <td class="p-4 text-center">
-                            <button class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors" onclick="window.viewAdminDetail(${index})">
-                                <i class="fa-solid fa-eye"></i> Ver
+                            <button class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors text-sm font-medium" onclick="window.viewAdminDetail(${index})">
+                                <i class="fa-solid fa-eye mr-1"></i> Ver Informe
                             </button>
                         </td>
                     </tr>
@@ -1084,46 +1152,96 @@
             tbody.innerHTML = html;
         }
 
-        // --- STREAMING_CHUNK:Finalizando interacciones del administrador y arranque de la App ---
-        // Exponer función globalmente para el onclick del HTML
         window.viewAdminDetail = function(index) {
             const data = allResponses[index];
             document.getElementById('admin-list-container').classList.add('hidden');
             document.getElementById('admin-detail-container').classList.remove('hidden');
             
-            // Renderizar usando la plantilla de CV
-            document.getElementById('admin-detail-wrapper').innerHTML = generateCVHtml(data.answers, data.timestamp);
+            document.getElementById('admin-detail-wrapper').innerHTML = generateCVHtml(data.answers, data.timestamp || Date.now());
         };
 
-        // Completando los eventos que estaban cortados
         document.getElementById('btn-back-to-list').addEventListener('click', () => {
             document.getElementById('admin-detail-container').classList.add('hidden');
             document.getElementById('admin-list-container').classList.remove('hidden');
         });
 
-        document.getElementById('btn-exit-admin').addEventListener('click', () => {
-            elAdmin.classList.add('hidden');
-            elForm.classList.remove('hidden');
-            // Regresamos al inicio del cuestionario por limpieza de estado
-            currentSectionIndex = 0;
-            userAnswers = {};
-            renderSection();
+        document.getElementById('btn-exit-admin').addEventListener('click', async () => {
+            await signOut(auth);
+            document.getElementById('admin-view').classList.add('hidden');
+            document.getElementById('form-view').classList.remove('hidden');
         });
 
-        // ==========================================
-        // ARRANQUE DE LA APLICACIÓN
-        // ==========================================
-        async function startApp() {
+        // Funciones auxiliares globales
+        window.applySuggestion = function(inputId, text) {
+            const input = document.querySelector(`[data-input="${inputId}"]`);
+            if(input) {
+                input.value = text;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
+        let activeRecognition = null;
+        window.toggleMic = function(inputId, btn) {
+            const input = document.querySelector(`[data-input="${inputId}"]`);
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert("Navegador no compatible con dictado de voz nativo. Prueba en Chrome o Safari.");
+                return;
+            }
+
+            if (activeRecognition) {
+                try { activeRecognition.stop(); } catch(e){}
+                activeRecognition = null;
+            }
+
+            if (btn.classList.contains('recording')) {
+                btn.classList.remove('text-red-500', 'animate-pulse', 'recording');
+                btn.classList.add('text-gray-400');
+                return;
+            }
+
+            try {
+                const recognition = new SpeechRecognition();
+                activeRecognition = recognition;
+                recognition.lang = 'es-ES';
+                recognition.interimResults = true;
+
+                recognition.onstart = () => {
+                    btn.classList.add('text-red-500', 'animate-pulse', 'recording');
+                    btn.classList.remove('text-gray-400');
+                };
+
+                recognition.onresult = (e) => {
+                    let transcript = '';
+                    for (let i = e.resultIndex; i < e.results.length; ++i) {
+                        transcript += e.results[i][0].transcript;
+                    }
+                    if (transcript) {
+                        input.value = transcript;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                };
+
+                recognition.onend = () => {
+                    btn.classList.remove('text-red-500', 'animate-pulse', 'recording');
+                    btn.classList.add('text-gray-400');
+                    activeRecognition = null;
+                };
+
+                recognition.start();
+            } catch (err) {
+                console.error("Error iniciando micrófono:", err);
+            }
+        };
+
+        // Inicio de la aplicación
+        window.addEventListener('DOMContentLoaded', async () => {
             await initFirebase();
-            // Mostrar interfaz sin importar si hay error en Firebase (uso local)
-            elLoading.classList.add('hidden');
-            elForm.classList.remove('hidden');
+            document.getElementById('loading-view').classList.add('hidden');
+            document.getElementById('form-view').classList.remove('hidden');
             renderSection();
-        }
-
-        // Iniciar
-        startApp();
-
+        });
     </script>
 </body>
 </html>
