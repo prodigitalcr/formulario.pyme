@@ -131,6 +131,17 @@
                 <div id="printable-area" class="p-0">
                     <!-- Ficha o Plan inyectado aquí -->
                 </div>
+
+                <!-- Botón para cerrar el diagnóstico y dar paso al siguiente participante -->
+                <div class="mt-6 bg-white rounded-2xl shadow-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p class="text-sm text-gray-600 text-center sm:text-left">
+                        <i class="fa-solid fa-circle-info text-indigo-500 mr-1"></i>
+                        Tu diagnóstico quedó guardado. Cuando termines de revisarlo, sal para que otra persona pueda completar el suyo.
+                    </p>
+                    <button id="btn-exit-participant" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors shadow-md shadow-indigo-200 shrink-0 w-full sm:w-auto">
+                        <i class="fa-solid fa-right-from-bracket mr-2"></i> Salir y dar paso al siguiente participante
+                    </button>
+                </div>
             </div>
 
             <!-- PANEL DE ADMINISTRADOR -->
@@ -659,19 +670,28 @@
             const name = answers['q_name'] || 'Emprendedor/a';
             const answersText = buildAnswersSummaryText(answers);
 
-            const systemPrompt = `Eres un consultor experto en emprendimiento y negocios en Costa Rica. Analizas el diagnóstico de un emprendedor/a y generas un plan de acción claro, cálido y accionable. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown y sin bloques de código, siguiendo EXACTAMENTE este esquema:
+            const systemPrompt = `Eres un consultor de negocios senior especializado en emprendimiento y PYMES en Costa Rica. Tu trabajo es leer el diagnóstico de un emprendedor/a y entregarle un plan de acción PROFESIONAL, CLARO y DIRECTO, basado exclusivamente en lo que respondió (no inventes datos ni supongas información que no te dieron).
+
+Reglas de estilo obligatorias:
+- Lenguaje claro, concreto y profesional. Cero relleno, cero frases motivacionales vacías, cero generalidades tipo "trabaja duro" o "cree en ti".
+- Cada recomendación debe estar conectada directamente con una respuesta real del emprendedor (menciona el dato o la situación específica que la origina).
+- Frases cortas y accionables. El emprendedor debe saber exactamente QUÉ hacer, en qué orden y por qué.
+- Prioriza los pasos según lo que más impacto tendría primero, considerando su etapa actual, su dificultad principal y su objetivo declarado.
+- Si la información es escasa o ambigua, sé honesto y dilo brevemente en vez de inventar.
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown y sin bloques de código, siguiendo EXACTAMENTE este esquema:
 {
   "nivelNegocio": "string corto describiendo el nivel actual (ej: Nivel 2: Estructuración)",
-  "perfilProfesional": "string de 2-3 frases tipo resumen profesional/objetivo de currículum, en primera persona plural o tono cercano, describiendo al emprendedor y su negocio",
-  "resultadoEncuesta": "string de 2-4 frases interpretando el resultado general de la encuesta: claridad del negocio, madurez y principales hallazgos",
-  "fortalezas": ["3 a 5 fortalezas concretas identificadas a partir de las respuestas"],
-  "areasDeMejora": ["3 a 5 áreas de mejora u oportunidades concretas"],
+  "perfilProfesional": "string de 2-3 frases, tono profesional tipo resumen de currículum, describiendo el negocio y su situación real a partir de las respuestas",
+  "resultadoEncuesta": "string de 2-4 frases directas: qué tan claro tiene el negocio, qué tan lista está la propuesta de valor, precios, canales y presencia digital, y cuál es el hallazgo más importante",
+  "fortalezas": ["3 a 5 fortalezas concretas y específicas, basadas en respuestas reales, no genéricas"],
+  "areasDeMejora": ["3 a 5 áreas de mejora concretas y específicas, basadas en respuestas reales, no genéricas"],
   "pasos": [
-    { "titulo": "string corto", "plazo": "string ej: Semanas 1-2", "descripcion": "string de 1-2 frases accionables" }
+    { "titulo": "string corto y directo (verbo en infinitivo)", "plazo": "string ej: Semanas 1-2", "descripcion": "string de 1-2 frases, específico y accionable, indicando el CÓMO" }
   ],
-  "recomendacionFinal": "string de 1-2 frases motivadoras y concretas como cierre"
+  "recomendacionFinal": "string de 1-2 frases, directo y profesional, sin frases de relleno, con el siguiente paso más importante a tomar esta semana"
 }
-Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizada según las respuestas del emprendedor. Sé específico, evita frases genéricas, y usa la información real que se te entrega.`;
+Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizada según las respuestas del emprendedor.`;
 
             const userPrompt = `Nombre del participante: ${name}\n\nRespuestas del diagnóstico:\n${answersText}\n\nGenera el JSON solicitado.`;
 
@@ -688,7 +708,7 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
                             { role: "system", content: systemPrompt },
                             { role: "user", content: userPrompt }
                         ],
-                        temperature: 0.6
+                        temperature: 0.5
                     })
                 });
 
@@ -729,10 +749,10 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
                     const isTextArea = q.type === 'textarea';
                     html += `<div class="relative mb-2">
                                 ${isTextArea 
-                                    ? `<textarea rows="4" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta o dicta..." data-input="${q.id}">${val}</textarea>`
-                                    : `<input type="text" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta..." data-input="${q.id}" value="${val}">`
+                                    ? `<textarea rows="4" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta o dicta..." data-input="${q.id}" autocomplete="off">${val}</textarea>`
+                                    : `<input type="text" class="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow" placeholder="Escribe tu respuesta..." data-input="${q.id}" value="${val}" autocomplete="off" autocorrect="off" spellcheck="false" name="campo_${q.id}_${Date.now()}">`
                                 }
-                                <button type="button" onclick="window.toggleMic('${q.id}', this)" class="absolute right-3 ${isTextArea ? 'top-3' : 'top-1/2 transform -translate-y-1/2'} text-gray-400 hover:text-indigo-600 transition-colors p-2" title="Dictar por voz">
+                                <button type="button" onclick="window.toggleMic('${q.id}', this)" class="absolute right-3 z-10 ${isTextArea ? 'top-3' : 'top-1/2 transform -translate-y-1/2'} text-gray-400 hover:text-indigo-600 transition-colors p-2" title="Dictar por voz">
                                     <i class="fa-solid fa-microphone text-lg pointer-events-none"></i>
                                 </button>
                              </div>`;
@@ -1338,7 +1358,7 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
             });
         });
 
-        document.getElementById('btn-restart').addEventListener('click', () => {
+        function resetToStart() {
             userAnswers = {};
             currentAIPlan = null;
             currentSectionIndex = 0;
@@ -1347,6 +1367,12 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
             document.getElementById('btn-submit').innerHTML = 'Finalizar <i class="fa-solid fa-check ml-2"></i>';
             document.getElementById('btn-submit').disabled = false;
             renderSection();
+        }
+
+        document.getElementById('btn-restart').addEventListener('click', resetToStart);
+        document.getElementById('btn-exit-participant').addEventListener('click', () => {
+            resetToStart();
+            showToast("¡Gracias! El formulario está listo para el siguiente participante.");
         });
 
         // --- SISTEMA ADMINISTRATIVO ---
