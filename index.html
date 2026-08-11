@@ -209,17 +209,6 @@
         // CONFIGURACIONES PRINCIPALES
         // ==========================================
         
-        // 1. Configuración de Firebase (Datos proporcionados por el usuario)
-        let customFirebaseConfig = {
-          apiKey: "AIzaSyBS0o_PYS_G0ndJi7cYdSksftsKKOtDcAg",
-          authDomain: "fomulario-pyme.firebaseapp.com",
-          projectId: "fomulario-pyme",
-          storageBucket: "fomulario-pyme.firebasestorage.app",
-          messagingSenderId: "330925588954",
-          appId: "1:330925588954:web:437524bc61684af4e600e3",
-          measurementId: "G-VECZCK6QCF"
-        };
-
         // 2. API Key de OpenRouter (¡REEMPLAZA ESTO CON TU CLAVE REAL ANTES DE DESPLEGAR EN GITHUB!)
         // Nota: Para máxima seguridad en producción real se usa un backend, 
         // pero para Github Pages estático con OpenRouter, va aquí.
@@ -304,30 +293,41 @@
 
         async function initFirebaseApp() {
             try {
-                // Usamos la configuración inyectada por el entorno si existe, sino usamos la personalizada
-                const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : customFirebaseConfig;
+                console.log("Iniciando Firebase...");
+                // Usamos SIEMPRE la configuración inyectada por el entorno
+                if (typeof __firebase_config === 'undefined') {
+                    throw new Error("No se encontró la configuración de Firebase (__firebase_config).");
+                }
+                const config = JSON.parse(__firebase_config);
+                
                 app = initializeApp(config);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Por defecto intentamos login anónimo para que los usuarios puedan guardar sus respuestas
+                // Autenticación obligatoria
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    console.log("Iniciando sesión con token personalizado...");
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
+                    console.log("Iniciando sesión anónima...");
                     await signInAnonymously(auth);
                 }
                 
                 currentUser = auth.currentUser;
                 els.userStatus.innerHTML = `<i class="fa-solid fa-circle-check text-green-300"></i> Sistema Listo`;
+                console.log("Firebase inicializado correctamente.");
 
             } catch (error) {
-                console.error("Error Firebase:", error);
+                console.error("Error crítico inicializando Firebase:", error);
                 els.userStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-300"></i> Modo Local (Sin BD)`;
+                showNotification("No se pudo conectar a la base de datos. Modo local activo.", true);
             } finally {
-                // Ocultar loading y mostrar form SIEMPRE, incluso si Firebase falla, para no bloquear la app
-                els.loading.classList.add('hidden');
-                els.form.classList.remove('hidden');
-                renderSection();
+                // Ocultar loading y mostrar form SIEMPRE, garantizado.
+                setTimeout(() => {
+                    els.loading.classList.add('hidden');
+                    els.form.classList.remove('hidden');
+                    renderSection();
+                }, 500); // Pequeño retraso para evitar parpadeos extraños
             }
         }
 
@@ -733,8 +733,9 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
 
         // Comprobar estado de auth si recargan la página
         onAuthStateChanged(auth, (user) => {
-            if(user && user.email) {
-                // Si tiene email, es un usuario registrado (Admin)
+            // Verificamos si es un usuario que se logueó con email/password (Admin)
+            // Si es login anónimo o custom token por defecto del entorno, NO cargamos el panel admin
+            if(user && user.providerData && user.providerData.length > 0 && user.providerData[0].providerId === 'password') {
                 btnSecretAdmin.classList.add('hidden');
                 loadAdminPanel();
             }
@@ -844,8 +845,16 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             document.getElementById('admin-detail-container').classList.add('hidden');
         });
 
-        // Iniciar
-        initFirebaseApp();
+        // Iniciar todo envuelto en un try/catch global por si acaso
+        try {
+            initFirebaseApp();
+        } catch (e) {
+            console.error("Fallo catastrófico al iniciar la aplicación:", e);
+            els.loading.classList.add('hidden');
+            els.form.classList.remove('hidden');
+            renderSection();
+            showNotification("Fallo al iniciar el sistema. Operando en modo memoria.", true);
+        }
 
     </script>
 </body>
