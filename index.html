@@ -317,6 +317,13 @@
         const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
         const DEFAULT_AI_MODEL = "openai/gpt-4o-mini";
 
+        // ── API KEY FIJA (fallback garantizado) ──────────────────────────────
+        // Si Firestore no tiene la clave o las reglas bloquean la lectura,
+        // esta clave se usa automáticamente. Cámbiala aquí cuando rote.
+        const FALLBACK_API_KEY   = "TU_API_KEY_DE_OPENROUTER_AQUI";
+        const FALLBACK_AI_MODEL  = "openai/gpt-4o-mini";
+        // ─────────────────────────────────────────────────────────────────────
+
         // --- CUESTIONARIO COMPLETO ---
         const questionnaire = [
             {
@@ -585,7 +592,13 @@
         let activeTab = 'plan'; // Por defecto muestra el Plan de Acción
         let currentTimestamp = Date.now();
         let allResponses = [];
-        let aiConfig = { apiKey: '', model: DEFAULT_AI_MODEL, configured: false, loadError: null };
+        // Se inicializa con la clave fija; loadAIConfig() la sobreescribe si Firestore tiene una más reciente
+        let aiConfig = {
+            apiKey:     FALLBACK_API_KEY,
+            model:      FALLBACK_AI_MODEL,
+            configured: !!FALLBACK_API_KEY && FALLBACK_API_KEY !== "TU_API_KEY_DE_OPENROUTER_AQUI",
+            loadError:  null
+        };
         let currentAIPlan = null; // Plan de acción generado por IA para la vista de resultados actual
         let adminDetailAIPlan = null; // Plan de acción (propio o generado) para el detalle visto por el admin
 
@@ -644,34 +657,51 @@
         // las reglas de Firestore deben permitir LECTURA pública de este documento,
         // pero la ESCRITURA debe quedar restringida solo a usuarios autenticados (admin).
         async function loadAIConfig() {
+            // La clave fija ya está cargada en aiConfig desde el inicio.
+            // Firestore puede sobreescribirla si el admin guardó una más reciente,
+            // pero si falla o está vacía, la clave fija sigue activa.
             try {
                 const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
                 const snap = await getDoc(configRef);
                 if (snap.exists()) {
                     const data = snap.data();
-                    aiConfig.apiKey = data.apiKey || '';
-                    aiConfig.model = data.model || DEFAULT_AI_MODEL;
+                    // Solo sobreescribir si Firestore tiene una clave válida
+                    if (data.apiKey && data.apiKey.trim() !== '') {
+                        aiConfig.apiKey = data.apiKey.trim();
+                        aiConfig.model  = data.model || FALLBACK_AI_MODEL;
+                    }
+                    // Si Firestore no tiene clave, la fija del código sigue activa
                     aiConfig.configured = !!aiConfig.apiKey;
-                    aiConfig.loadError = null;
+                    aiConfig.loadError  = null;
                 } else {
-                    aiConfig.loadError = null; // el documento simplemente no existe todavía (normal la primera vez)
+                    // Documento no existe aún → la clave fija sigue activa
+                    aiConfig.loadError = null;
                 }
             } catch (error) {
-                console.warn("No se pudo cargar la configuración de IA:", error);
-                aiConfig.loadError = error?.code || error?.message || 'Error desconocido al leer app_config';
+                // Error de permisos u otro → la clave fija sigue activa, no se interrumpe nada
+                console.warn("Firestore no disponible para leer config IA, usando clave fija:", error?.code || error?.message);
+                aiConfig.loadError = error?.code || error?.message || 'Error al leer app_config';
+                // aiConfig.apiKey y aiConfig.model ya tienen los valores fijos, no se tocan
             }
         }
 
         async function saveAIConfig(apiKey, model) {
-            const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
-            await setDoc(configRef, {
-                apiKey: apiKey,
-                model: model || DEFAULT_AI_MODEL,
-                updatedAt: Date.now()
-            }, { merge: true });
-            aiConfig.apiKey = apiKey;
-            aiConfig.model = model || DEFAULT_AI_MODEL;
+            const resolvedModel = model || FALLBACK_AI_MODEL;
+            // Actualizar en memoria inmediatamente (no depende de que Firestore responda)
+            aiConfig.apiKey     = apiKey;
+            aiConfig.model      = resolvedModel;
             aiConfig.configured = !!apiKey;
+            // Intentar persistir en Firestore (falla silenciosamente si no hay permisos)
+            try {
+                const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
+                await setDoc(configRef, {
+                    apiKey:    apiKey,
+                    model:     resolvedModel,
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (error) {
+                console.warn("No se pudo guardar en Firestore, la clave sigue activa en memoria:", error?.code);
+            }
         }
 
         // Compila las respuestas del cuestionario en un texto legible para el prompt de la IA
