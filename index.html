@@ -210,7 +210,7 @@
         // ==========================================
         
         // 1. Configuración de Firebase (Datos proporcionados por el usuario)
-        const firebaseConfig = {
+        let customFirebaseConfig = {
           apiKey: "AIzaSyBS0o_PYS_G0ndJi7cYdSksftsKKOtDcAg",
           authDomain: "fomulario-pyme.firebaseapp.com",
           projectId: "fomulario-pyme",
@@ -286,9 +286,27 @@
         let userAnswers = {};
         window.activeTab = 'ficha';
 
+        // NUEVO: Función para reemplazar los alert() nativos
+        function showNotification(msg, isError = true) {
+            let notif = document.getElementById('custom-notification');
+            if(!notif) {
+                notif = document.createElement('div');
+                notif.id = 'custom-notification';
+                notif.className = 'fixed top-6 right-4 p-4 rounded-lg shadow-xl z-[150] text-white font-medium transition-all duration-300 transform translate-x-[120%]';
+                document.body.appendChild(notif);
+            }
+            notif.className = `fixed top-6 right-4 p-4 rounded-lg shadow-xl z-[150] text-white font-medium transition-all duration-300 transform translate-x-0 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            notif.innerHTML = msg;
+            setTimeout(() => {
+                notif.classList.add('translate-x-[120%]');
+            }, 3000);
+        }
+
         async function initFirebaseApp() {
             try {
-                app = initializeApp(firebaseConfig);
+                // Usamos la configuración inyectada por el entorno si existe, sino usamos la personalizada
+                const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : customFirebaseConfig;
+                app = initializeApp(config);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
@@ -301,16 +319,15 @@
                 
                 currentUser = auth.currentUser;
                 els.userStatus.innerHTML = `<i class="fa-solid fa-circle-check text-green-300"></i> Sistema Listo`;
-                
-                // Ocultar loading y mostrar form
-                els.loading.classList.add('hidden');
-                els.form.classList.remove('hidden');
-                renderSection();
 
             } catch (error) {
                 console.error("Error Firebase:", error);
-                els.userStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-300"></i> Error de Red`;
-                els.loading.innerHTML = `<div class="text-red-500 mb-4"><i class="fa-solid fa-circle-xmark text-4xl"></i></div><p>Error conectando a la base de datos. Recarga la página.</p>`;
+                els.userStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-300"></i> Modo Local (Sin BD)`;
+            } finally {
+                // Ocultar loading y mostrar form SIEMPRE, incluso si Firebase falla, para no bloquear la app
+                els.loading.classList.add('hidden');
+                els.form.classList.remove('hidden');
+                renderSection();
             }
         }
 
@@ -436,10 +453,13 @@
             let isValid = true;
             section.questions.forEach(q => {
                 if (q.type === 'text' || q.type === 'textarea') {
-                    const val = document.querySelector(`[data-input="${q.id}"]`).value.trim();
-                    if (val) userAnswers[q.id] = val;
-                    else delete userAnswers[q.id];
-                    if (q.required && !val) isValid = false;
+                    const el = document.querySelector(`[data-input="${q.id}"]`);
+                    if (el) {
+                        const val = el.value.trim();
+                        if (val) userAnswers[q.id] = val;
+                        else delete userAnswers[q.id];
+                        if (q.required && !val) isValid = false;
+                    }
                 } else if (q.type === 'radio') {
                     const checked = document.querySelector(`input[name="${q.id}"]:checked`);
                     if (checked) {
@@ -457,7 +477,10 @@
         }
 
         els.btnNext.addEventListener('click', () => {
-            if (!saveCurrentSectionData()) return alert("Completa los campos obligatorios (*).");
+            if (!saveCurrentSectionData()) {
+                showNotification("Por favor, completa todos los campos obligatorios (*).");
+                return;
+            }
             if (currentSectionIndex < questionnaire.length - 1) {
                 currentSectionIndex++;
                 renderSection();
@@ -474,10 +497,37 @@
 
         async function fetchOpenRouterAI(answers) {
             if(OPENROUTER_API_KEY === "TU_API_KEY_DE_OPENROUTER_AQUI" || !OPENROUTER_API_KEY) {
-                return `<div class="p-6 bg-red-50 text-red-700 rounded-xl border border-red-200">
-                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-triangle-exclamation"></i> API Key no configurada</h3>
-                    <p>Por favor, configura la constante <code>OPENROUTER_API_KEY</code> en el código fuente para habilitar la generación de IA.</p>
-                </div>`;
+                // Simulación visual si no hay API Key para que el usuario pueda probar la interfaz
+                await new Promise(r => setTimeout(r, 2500)); // Simulamos carga
+                return `
+                    <div class="space-y-6">
+                        <div class="bg-indigo-50 border border-indigo-200 text-indigo-800 p-4 rounded-lg flex gap-3 items-start">
+                            <i class="fa-solid fa-info-circle mt-1"></i>
+                            <p class="text-sm"><strong>Modo Demostración:</strong> Como no se configuró una API Key real, estás viendo un plan de ejemplo generado localmente. Añade tu API Key en el código para conectar con la IA real.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 1: Preparación (Corto Plazo)</h3>
+                            <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-700">
+                                <li>Analizar a fondo el perfil de tu cliente ideal (Buyer Persona).</li>
+                                <li>Crear un calendario de contenido básico para las próximas 2 semanas.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 2: Acción (Medio Plazo)</h3>
+                            <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-700">
+                                <li>Lanzar una campaña de prueba con presupuesto mínimo.</li>
+                                <li>Registrar ingresos y gastos diariamente en una plantilla básica.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 3: Escalado (Largo Plazo)</h3>
+                            <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-700">
+                                <li>Analizar métricas y ajustar estrategia de retención.</li>
+                                <li>Automatizar respuestas a preguntas frecuentes de clientes.</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
             }
 
             const promptText = `
@@ -525,7 +575,10 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
         }
 
         els.btnSubmit.addEventListener('click', async () => {
-            if (!saveCurrentSectionData()) return alert("Completa los campos obligatorios antes de finalizar.");
+            if (!saveCurrentSectionData()) {
+                showNotification("Por favor, completa los campos obligatorios antes de finalizar.");
+                return;
+            }
             
             els.aiModal.classList.remove('hidden'); // Mostrar Loading IA
 
@@ -533,17 +586,21 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
                 // 1. Generar Plan con IA
                 currentAIPlanHtml = await fetchOpenRouterAI(userAnswers);
 
-                // 2. Guardar en Firebase
-                if(currentUser && db) {
-                    const responsesRef = collection(db, COLLECTION_PATH);
-                    await addDoc(responsesRef, {
-                        userId: currentUser.uid,
-                        participantName: userAnswers['q_name'] || 'Anónimo',
-                        email: userAnswers['q_email'] || 'No proveído',
-                        answers: userAnswers,
-                        ai_plan: currentAIPlanHtml, // Guardamos el plan generado
-                        timestamp: Date.now()
-                    });
+                // 2. Guardar en Firebase (Envuelto en try/catch para que no bloquee si no hay permisos)
+                try {
+                    if(currentUser && db) {
+                        const responsesRef = collection(db, COLLECTION_PATH);
+                        await addDoc(responsesRef, {
+                            userId: currentUser.uid,
+                            participantName: userAnswers['q_name'] || 'Anónimo',
+                            email: userAnswers['q_email'] || 'No proveído',
+                            answers: userAnswers,
+                            ai_plan: currentAIPlanHtml,
+                            timestamp: Date.now()
+                        });
+                    }
+                } catch (dbError) {
+                    console.warn("Base de datos en modo lectura/error de permisos. Continuando en memoria...", dbError);
                 }
                 
                 // 3. Mostrar Resultados
@@ -555,7 +612,7 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             } catch (error) {
                 els.aiModal.classList.add('hidden');
                 console.error("Error global en submit:", error);
-                alert("Ocurrió un error. Revisa la consola.");
+                showNotification("Ocurrió un error procesando los datos. Revisa la consola.");
             }
         });
 
