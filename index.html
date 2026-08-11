@@ -151,7 +151,7 @@
         </div>
     </footer>
 
-    <!-- Botón Secreto Admin (Esquina inferior derecha) -->
+    <!-- Botón Secreto Admin -->
     <button id="btn-secret-admin" class="fixed bottom-4 right-4 text-gray-400 hover:text-indigo-600 opacity-30 hover:opacity-100 transition-opacity p-3 z-50 rounded-full hover:bg-white hover:shadow-lg" title="Acceso Admin">
         <i class="fa-solid fa-lock text-xl"></i>
     </button>
@@ -202,28 +202,33 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // CONFIGURACIONES PRINCIPALES
         // ==========================================
         
-        // 2. API Key de OpenRouter (¡REEMPLAZA ESTO CON TU CLAVE REAL ANTES DE DESPLEGAR EN GITHUB!)
-        // Nota: Para máxima seguridad en producción real se usa un backend, 
-        // pero para Github Pages estático con OpenRouter, va aquí.
         const OPENROUTER_API_KEY = "TU_API_KEY_DE_OPENROUTER_AQUI"; 
-        const OPENROUTER_MODEL = "openai/gpt-3.5-turbo"; // Puedes cambiarlo a google/gemini-pro, mistralai/mixtral-8x7b-instruct, etc.
+        const OPENROUTER_MODEL = "openai/gpt-3.5-turbo";
 
-        // Variable global para Canvas compatibility (No modificar)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fomulario-pyme';
-        const COLLECTION_PATH = `artifacts/${appId}/public/data/form_responses`;
+        // Tu configuración de Firebase directa
+        const firebaseConfig = {
+            apiKey: "AIzaSyBS0o_PYS_G0ndJi7cYdSksftsKKOtDcAg",
+            authDomain: "fomulario-pyme.firebaseapp.com",
+            projectId: "fomulario-pyme",
+            storageBucket: "fomulario-pyme.firebasestorage.app",
+            messagingSenderId: "330925588954",
+            appId: "1:330925588954:web:437524bc61684af4e600e3",
+            measurementId: "G-VECZCK6QCF"
+        };
+
+        const COLLECTION_PATH = `formularios/respuestas/usuarios`;
 
         let app, db, auth, currentUser;
         let isAdminView = false;
-        let currentAIPlanHtml = ""; // Guardará el HTML generado por la IA
+        let currentAIPlanHtml = "";
 
-        // Elementos DOM
         const els = {
             loading: document.getElementById('loading-view'),
             form: document.getElementById('form-view'),
@@ -240,7 +245,6 @@
             aiModal: document.getElementById('ai-loading-modal')
         };
 
-        // --- ESTRUCTURA DEL CUESTIONARIO (Resumida para efectividad) ---
         const questionnaire = [
             {
                 title: "Datos Personales",
@@ -267,15 +271,12 @@
                     }
                 ]
             }
-            // Puedes agregar más secciones basadas en tu estructura original aquí. 
-            // Las he resumido para garantizar el correcto flujo con IA.
         ];
 
         let currentSectionIndex = 0;
         let userAnswers = {};
         window.activeTab = 'ficha';
 
-        // NUEVO: Función para reemplazar los alert() nativos
         function showNotification(msg, isError = true) {
             let notif = document.getElementById('custom-notification');
             if(!notif) {
@@ -294,24 +295,13 @@
         async function initFirebaseApp() {
             try {
                 console.log("Iniciando Firebase...");
-                // Usamos SIEMPRE la configuración inyectada por el entorno
-                if (typeof __firebase_config === 'undefined') {
-                    throw new Error("No se encontró la configuración de Firebase (__firebase_config).");
-                }
-                const config = JSON.parse(__firebase_config);
                 
-                app = initializeApp(config);
+                app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Autenticación obligatoria
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    console.log("Iniciando sesión con token personalizado...");
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    console.log("Iniciando sesión anónima...");
-                    await signInAnonymously(auth);
-                }
+                console.log("Iniciando sesión anónima...");
+                await signInAnonymously(auth);
                 
                 currentUser = auth.currentUser;
                 els.userStatus.innerHTML = `<i class="fa-solid fa-circle-check text-green-300"></i> Sistema Listo`;
@@ -319,15 +309,14 @@
 
             } catch (error) {
                 console.error("Error crítico inicializando Firebase:", error);
-                els.userStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-300"></i> Modo Local (Sin BD)`;
-                showNotification("No se pudo conectar a la base de datos. Modo local activo.", true);
+                els.userStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-300"></i> Error de Red`;
+                showNotification("No se pudo conectar a Firebase. Revisa los permisos de tu base de datos.", true);
             } finally {
-                // Ocultar loading y mostrar form SIEMPRE, garantizado.
                 setTimeout(() => {
                     els.loading.classList.add('hidden');
                     els.form.classList.remove('hidden');
                     renderSection();
-                }, 500); // Pequeño retraso para evitar parpadeos extraños
+                }, 500);
             }
         }
 
@@ -392,7 +381,6 @@
             html += `</div>`;
             els.qContainer.innerHTML = html;
 
-            // UI del Progreso
             const progress = (currentSectionIndex / (questionnaire.length - 1)) * 100;
             els.progressBar.style.width = `${progress}%`;
             els.stepIndicator.innerText = `Paso ${currentSectionIndex + 1} de ${questionnaire.length}`;
@@ -410,10 +398,7 @@
         }
 
         window.updateRadioUI = function(radio) {
-            const name = radio.name;
             const container = radio.closest('.space-y-3');
-            
-            // Reset all in group
             container.querySelectorAll('label').forEach(lbl => {
                 lbl.classList.remove('border-indigo-400', 'bg-indigo-50/30');
                 lbl.classList.add('border-gray-200');
@@ -423,7 +408,6 @@
                 lbl.querySelector('.scale-100')?.classList.replace('scale-100', 'scale-0');
             });
 
-            // Set active
             const activeLbl = radio.closest('label');
             activeLbl.classList.remove('border-gray-200');
             activeLbl.classList.add('border-indigo-400', 'bg-indigo-50/30');
@@ -432,7 +416,6 @@
             actInd.classList.add('border-indigo-600');
             activeLbl.querySelector('.scale-0')?.classList.replace('scale-0', 'scale-100');
 
-            // Handle "Other" logic
             if (radio.hasAttribute('data-other-trigger')) {
                 const id = radio.getAttribute('data-other-trigger');
                 document.getElementById(`other_input_${id}`).classList.remove('opacity-50', 'pointer-events-none');
@@ -497,13 +480,12 @@
 
         async function fetchOpenRouterAI(answers) {
             if(OPENROUTER_API_KEY === "TU_API_KEY_DE_OPENROUTER_AQUI" || !OPENROUTER_API_KEY) {
-                // Simulación visual si no hay API Key para que el usuario pueda probar la interfaz
-                await new Promise(r => setTimeout(r, 2500)); // Simulamos carga
+                await new Promise(r => setTimeout(r, 2500)); 
                 return `
                     <div class="space-y-6">
                         <div class="bg-indigo-50 border border-indigo-200 text-indigo-800 p-4 rounded-lg flex gap-3 items-start">
                             <i class="fa-solid fa-info-circle mt-1"></i>
-                            <p class="text-sm"><strong>Modo Demostración:</strong> Como no se configuró una API Key real, estás viendo un plan de ejemplo generado localmente. Añade tu API Key en el código para conectar con la IA real.</p>
+                            <p class="text-sm"><strong>Modo Demostración:</strong> Añade tu API Key de OpenRouter en el código para conectar con la IA real.</p>
                         </div>
                         <div>
                             <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 1: Preparación (Corto Plazo)</h3>
@@ -512,37 +494,14 @@
                                 <li>Crear un calendario de contenido básico para las próximas 2 semanas.</li>
                             </ul>
                         </div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 2: Acción (Medio Plazo)</h3>
-                            <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-700">
-                                <li>Lanzar una campaña de prueba con presupuesto mínimo.</li>
-                                <li>Registrar ingresos y gastos diariamente en una plantilla básica.</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800 border-b pb-2">Fase 3: Escalado (Largo Plazo)</h3>
-                            <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-700">
-                                <li>Analizar métricas y ajustar estrategia de retención.</li>
-                                <li>Automatizar respuestas a preguntas frecuentes de clientes.</li>
-                            </ul>
-                        </div>
                     </div>
                 `;
             }
 
             const promptText = `
-Eres un consultor de negocios experto. Basado en el siguiente diagnóstico de un emprendedor, genera un "Plan de Acción de 3 Fases (Corto, Medio, Largo Plazo)".
-Respuestas del usuario:
-- Etapa: ${answers.q1 || 'No especificada'}
-- Descripción del negocio: ${answers.q2 || 'No especificada'}
-- Dificultad principal: ${answers.q3 || 'No especificada'}
-
-El formato de salida DEBE ser EXCLUSIVAMENTE código HTML válido para inyectar en un div.
-Usa clases de Tailwind CSS (colores indigo, gray, green). 
-Estructura deseada:
-1. Un div resumen del diagnóstico.
-2. Tres tarjetas (Fase 1, 2, 3) con listas de tareas específicas y accionables.
-No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
+Eres un consultor de negocios experto. Basado en el siguiente diagnóstico de un emprendedor, genera un "Plan de Acción de 3 Fases".
+Respuestas: Etapa: ${answers.q1 || '-'}, Negocio: ${answers.q2 || '-'}, Dificultad: ${answers.q3 || '-'}
+El formato DEBE ser EXCLUSIVAMENTE código HTML con clases Tailwind. No incluyas etiquetas html, head ni markdown.`;
 
             try {
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -557,20 +516,13 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
                     })
                 });
 
-                if(!response.ok) throw new Error("Error en la respuesta de OpenRouter");
+                if(!response.ok) throw new Error("Error en OpenRouter");
                 const data = await response.json();
-                
-                // Limpiar posibles backticks markdown de la respuesta de IA
                 let htmlContent = data.choices[0].message.content;
-                htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '');
-                return htmlContent;
+                return htmlContent.replace(/```html/g, '').replace(/```/g, '');
 
             } catch (error) {
-                console.error("OpenRouter Error:", error);
-                return `<div class="p-6 bg-orange-50 text-orange-700 rounded-xl border border-orange-200">
-                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-robot"></i> Error al generar plan IA</h3>
-                    <p>Hubo un problema contactando a OpenRouter. Sin embargo, tus respuestas se han guardado exitosamente.</p>
-                </div>`;
+                return `<p class="text-orange-600">Error al contactar a la IA. Revisa la consola.</p>`;
             }
         }
 
@@ -580,13 +532,11 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
                 return;
             }
             
-            els.aiModal.classList.remove('hidden'); // Mostrar Loading IA
+            els.aiModal.classList.remove('hidden');
 
             try {
-                // 1. Generar Plan con IA
                 currentAIPlanHtml = await fetchOpenRouterAI(userAnswers);
 
-                // 2. Guardar en Firebase (Envuelto en try/catch para que no bloquee si no hay permisos)
                 try {
                     if(currentUser && db) {
                         const responsesRef = collection(db, COLLECTION_PATH);
@@ -600,19 +550,17 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
                         });
                     }
                 } catch (dbError) {
-                    console.warn("Base de datos en modo lectura/error de permisos. Continuando en memoria...", dbError);
+                    console.warn("Error guardando en Firestore. Asegúrate de tener las reglas configuradas correctamente:", dbError);
                 }
                 
-                // 3. Mostrar Resultados
                 els.aiModal.classList.add('hidden');
                 els.form.classList.add('hidden');
                 els.results.classList.remove('hidden');
-                window.switchResultTab('plan'); // Por defecto mostrar el plan de IA
+                window.switchResultTab('plan');
 
             } catch (error) {
                 els.aiModal.classList.add('hidden');
-                console.error("Error global en submit:", error);
-                showNotification("Ocurrió un error procesando los datos. Revisa la consola.");
+                showNotification("Ocurrió un error procesando los datos.");
             }
         });
 
@@ -621,22 +569,42 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             const btnFicha = document.getElementById('tab-ficha');
             const btnPlan = document.getElementById('tab-plan');
             
-            // Reset styles
             btnFicha.className = "px-4 py-2 bg-transparent text-gray-600 rounded-lg font-medium hover:bg-gray-100 transition-colors";
             btnPlan.className = "px-4 py-2 bg-transparent text-gray-600 rounded-lg font-medium hover:bg-gray-100 transition-colors";
             
             if (tab === 'ficha') {
                 btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium shadow-sm transition-colors";
-                els.printableArea.innerHTML = generateFichaHtml(userAnswers);
+                els.printableArea.innerHTML = `
+                    <div class="p-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4"><i class="fa-solid fa-clipboard-list text-indigo-600 mr-2"></i> Ficha Diagnóstica</h2>
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <p class="text-xs text-gray-500 font-bold uppercase mb-1">Participante</p>
+                                    <p class="font-medium text-gray-800">${userAnswers.q_name || 'N/A'}</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <p class="text-xs text-gray-500 font-bold uppercase mb-1">Etapa Actual</p>
+                                    <p class="font-medium text-gray-800">${userAnswers.q1 || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
+                                <p class="text-xs text-indigo-800 font-bold uppercase mb-2">Descripción del Negocio</p>
+                                <p class="text-indigo-900">${userAnswers.q2 || 'N/A'}</p>
+                            </div>
+                            <div class="bg-red-50 p-5 rounded-xl border border-red-100">
+                                <p class="text-xs text-red-800 font-bold uppercase mb-2">Dificultad Principal</p>
+                                <p class="text-red-900">${userAnswers.q3 || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
             } else {
                 btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium shadow-sm transition-colors";
-                
-                // Envolver el plan IA en un contenedor agradable
                 els.printableArea.innerHTML = `
                     <div class="p-8">
                         <div class="border-b border-gray-200 pb-4 mb-6">
-                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Generado por Inteligencia Artificial</span>
-                            <h2 class="text-3xl font-bold text-gray-800 mt-3">Plan Estratégico de Acción</h2>
+                            <h2 class="text-3xl font-bold text-gray-800">Plan Estratégico de Acción</h2>
                             <p class="text-gray-500 mt-1">Para: ${userAnswers['q_name'] || 'Emprendedor/a'}</p>
                         </div>
                         <div class="ai-generated-content space-y-4 text-gray-700 leading-relaxed">
@@ -647,35 +615,6 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             }
         };
 
-        function generateFichaHtml(answers) {
-            return `
-                <div class="p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4"><i class="fa-solid fa-clipboard-list text-indigo-600 mr-2"></i> Ficha Diagnóstica</h2>
-                    <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p class="text-xs text-gray-500 font-bold uppercase mb-1">Participante</p>
-                                <p class="font-medium text-gray-800">${answers.q_name || 'N/A'}</p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p class="text-xs text-gray-500 font-bold uppercase mb-1">Etapa Actual</p>
-                                <p class="font-medium text-gray-800">${answers.q1 || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
-                            <p class="text-xs text-indigo-800 font-bold uppercase mb-2">Descripción del Negocio</p>
-                            <p class="text-indigo-900">${answers.q2 || 'N/A'}</p>
-                        </div>
-                        <div class="bg-red-50 p-5 rounded-xl border border-red-100">
-                            <p class="text-xs text-red-800 font-bold uppercase mb-2">Dificultad Principal (Reto)</p>
-                            <p class="text-red-900">${answers.q3 || 'N/A'}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Acciones de Botones Generales
         document.getElementById('btn-restart').addEventListener('click', () => location.reload());
         
         document.getElementById('btn-export-pdf').addEventListener('click', () => {
@@ -690,24 +629,14 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             html2pdf().set(opt).from(element).save();
         });
 
-        
+        // Eventos Panel Admin
         const modalAdmin = document.getElementById('admin-modal');
-        const btnSecretAdmin = document.getElementById('btn-secret-admin');
-        const loginForm = document.getElementById('admin-login-form');
-        
-        btnSecretAdmin.addEventListener('click', () => modalAdmin.classList.remove('hidden'));
+        document.getElementById('btn-secret-admin').addEventListener('click', () => modalAdmin.classList.remove('hidden'));
         document.getElementById('btn-cancel-admin').addEventListener('click', () => modalAdmin.classList.add('hidden'));
+        document.getElementById('logo-header').addEventListener('dblclick', () => modalAdmin.classList.remove('hidden'));
+        document.getElementById('btn-logout-admin').addEventListener('click', async () => { await signOut(auth); location.reload(); });
 
-        document.getElementById('logo-header').addEventListener('dblclick', () => modalAdmin.classList.remove('hidden')); // Huevo de pascua para abrir modal
-
-        // Logout
-        document.getElementById('btn-logout-admin').addEventListener('click', async () => {
-            await signOut(auth);
-            location.reload();
-        });
-
-        // Login Admin
-        loginForm.addEventListener('submit', async (e) => {
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('admin-email').value;
             const pass = document.getElementById('admin-password').value;
@@ -719,37 +648,29 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // Si llegamos aquí, el login fue exitoso. 
-                // Cargar panel admin
                 modalAdmin.classList.add('hidden');
                 btn.innerHTML = 'Entrar <i class="fa-solid fa-right-to-bracket ml-2"></i>';
                 loadAdminPanel();
             } catch (error) {
-                console.error("Login Admin Error:", error);
                 err.classList.remove('hidden');
                 btn.innerHTML = 'Entrar <i class="fa-solid fa-right-to-bracket ml-2"></i>';
             }
         });
 
-        // Comprobar estado de auth si recargan la página
         onAuthStateChanged(auth, (user) => {
-            // Verificamos si es un usuario que se logueó con email/password (Admin)
-            // Si es login anónimo o custom token por defecto del entorno, NO cargamos el panel admin
             if(user && user.providerData && user.providerData.length > 0 && user.providerData[0].providerId === 'password') {
-                btnSecretAdmin.classList.add('hidden');
+                document.getElementById('btn-secret-admin').classList.add('hidden');
                 loadAdminPanel();
             }
         });
 
         async function loadAdminPanel() {
-            isAdminView = true;
             els.form.classList.add('hidden');
             els.results.classList.add('hidden');
             els.admin.classList.remove('hidden');
             
             const tbody = document.getElementById('admin-table-body');
-            const emptyState = document.getElementById('admin-empty-state');
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-6"><i class="fa-solid fa-spinner fa-spin text-indigo-600 text-2xl"></i> Cargando datos...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-6"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>';
 
             try {
                 const q = query(collection(db, COLLECTION_PATH), orderBy("timestamp", "desc"));
@@ -757,85 +678,53 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
                 
                 tbody.innerHTML = '';
                 if(querySnapshot.empty) {
-                    emptyState.classList.remove('hidden');
+                    document.getElementById('admin-empty-state').classList.remove('hidden');
                 } else {
-                    emptyState.classList.add('hidden');
+                    document.getElementById('admin-empty-state').classList.add('hidden');
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
                         const date = new Date(data.timestamp).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
-                        
                         const tr = document.createElement('tr');
-                        tr.className = "hover:bg-gray-50 transition-colors cursor-pointer";
+                        tr.className = "hover:bg-gray-50 transition-colors";
                         tr.innerHTML = `
-                            <td class="p-4 font-medium text-gray-800">
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold mr-3">
-                                        ${data.participantName.charAt(0).toUpperCase()}
-                                    </div>
-                                    ${data.participantName}
-                                </div>
-                            </td>
+                            <td class="p-4 font-medium text-gray-800">${data.participantName}</td>
                             <td class="p-4 text-sm text-gray-500">${date}</td>
                             <td class="p-4 text-center">
-                                <button class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-md text-sm font-medium transition-colors border border-indigo-100" onclick="window.viewAdminDetail('${docSnap.id}')">
-                                    Ver Plan IA
-                                </button>
+                                <button class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-sm font-medium" onclick="window.viewAdminDetail('${docSnap.id}')">Ver Plan</button>
                             </td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
             } catch (error) {
-                console.error("Error fetch admin:", error);
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-6 text-red-500">Error de permisos: Asegúrate de que el usuario logueado coincida con las reglas de seguridad de Firestore (Admin).</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-6 text-red-500">Error al leer datos (Revisa Reglas Firestore).</td></tr>`;
             }
         }
 
         window.viewAdminDetail = async function(docId) {
             document.getElementById('admin-list-container').classList.add('hidden');
             document.getElementById('admin-detail-container').classList.remove('hidden');
-            
             const wrapper = document.getElementById('admin-detail-wrapper');
             wrapper.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-600"></i></div>';
             
             try {
-                const docRef = doc(db, COLLECTION_PATH, docId);
-                const docSnap = await getDoc(docRef);
-                
+                const docSnap = await getDoc(doc(db, COLLECTION_PATH, docId));
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const aiPlan = data.ai_plan || "<p class='text-gray-500 italic'>No se generó plan IA para este registro.</p>";
-                    
                     wrapper.innerHTML = `
                         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                            <div class="bg-gray-50 p-5 border-b border-gray-200 flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-xl font-bold text-gray-800">${data.participantName}</h3>
-                                    <p class="text-sm text-gray-500">${data.email || 'Sin correo'} &bull; ${new Date(data.timestamp).toLocaleString()}</p>
-                                </div>
-                                <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full"><i class="fa-solid fa-check mr-1"></i> Completado</span>
+                            <div class="bg-gray-50 p-5 border-b border-gray-200">
+                                <h3 class="text-xl font-bold text-gray-800">${data.participantName}</h3>
+                                <p class="text-sm text-gray-500">${new Date(data.timestamp).toLocaleString()}</p>
                             </div>
                             <div class="p-6">
-                                <h4 class="text-sm font-bold uppercase text-gray-400 mb-4 tracking-wider border-b pb-2">Plan de Acción IA Generado</h4>
-                                <div class="ai-generated-content text-gray-700 leading-relaxed bg-indigo-50/30 p-6 rounded-xl border border-indigo-100">
-                                    ${aiPlan}
-                                </div>
-                                
-                                <h4 class="text-sm font-bold uppercase text-gray-400 mt-8 mb-4 tracking-wider border-b pb-2">Respuestas Originales</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    ${Object.entries(data.answers).map(([key, val]) => {
-                                        // Encontrar la pregunta original para mostrar el título
-                                        let qText = key;
-                                        questionnaire.forEach(sec => sec.questions.forEach(q => { if(q.id === key) qText = q.text; }));
-                                        return `<div class="bg-gray-50 p-3 rounded-lg border border-gray-100"><p class="text-gray-500 font-semibold mb-1">${qText}</p><p class="text-gray-800">${val}</p></div>`;
-                                    }).join('')}
-                                </div>
+                                <h4 class="text-sm font-bold uppercase text-gray-400 mb-4">Plan IA Generado</h4>
+                                <div class="bg-indigo-50/30 p-6 rounded-xl border border-indigo-100">${data.ai_plan || 'Sin plan'}</div>
                             </div>
                         </div>
                     `;
                 }
             } catch(error) {
-                console.error("Error leyendo doc:", error);
                 wrapper.innerHTML = "<p class='text-red-500'>Error al leer el documento.</p>";
             }
         }
@@ -845,17 +734,15 @@ No incluyas etiquetas <html>, <body> ni markdown (\`\`\`). SOLO el HTML crudo.`;
             document.getElementById('admin-detail-container').classList.add('hidden');
         });
 
-        // Iniciar todo envuelto en un try/catch global por si acaso
+        // Iniciar
         try {
             initFirebaseApp();
         } catch (e) {
-            console.error("Fallo catastrófico al iniciar la aplicación:", e);
+            console.error(e);
             els.loading.classList.add('hidden');
             els.form.classList.remove('hidden');
             renderSection();
-            showNotification("Fallo al iniciar el sistema. Operando en modo memoria.", true);
         }
-
     </script>
 </body>
 </html>
