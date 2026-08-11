@@ -192,9 +192,12 @@
                             <input type="text" id="ai-model" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="openai/gpt-4o-mini">
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 mt-4">
+                    <div class="flex items-center gap-3 mt-4 flex-wrap">
                         <button id="btn-save-ai-config" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
                             <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Configuración
+                        </button>
+                        <button id="btn-verify-ai-config" type="button" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                            <i class="fa-solid fa-magnifying-glass mr-1"></i> Verificar en Firestore
                         </button>
                         <span id="ai-config-status" class="text-xs text-gray-500"></span>
                     </div>
@@ -582,7 +585,7 @@
         let activeTab = 'plan'; // Por defecto muestra el Plan de Acción
         let currentTimestamp = Date.now();
         let allResponses = [];
-        let aiConfig = { apiKey: '', model: DEFAULT_AI_MODEL, configured: false };
+        let aiConfig = { apiKey: '', model: DEFAULT_AI_MODEL, configured: false, loadError: null };
         let currentAIPlan = null; // Plan de acción generado por IA para la vista de resultados actual
         let adminDetailAIPlan = null; // Plan de acción (propio o generado) para el detalle visto por el admin
 
@@ -649,9 +652,13 @@
                     aiConfig.apiKey = data.apiKey || '';
                     aiConfig.model = data.model || DEFAULT_AI_MODEL;
                     aiConfig.configured = !!aiConfig.apiKey;
+                    aiConfig.loadError = null;
+                } else {
+                    aiConfig.loadError = null; // el documento simplemente no existe todavía (normal la primera vez)
                 }
             } catch (error) {
                 console.warn("No se pudo cargar la configuración de IA:", error);
+                aiConfig.loadError = error?.code || error?.message || 'Error desconocido al leer app_config';
             }
         }
 
@@ -1482,7 +1489,9 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
 
         function updateAIConfigStatus() {
             const statusEl = document.getElementById('ai-config-status');
-            if (aiConfig.configured) {
+            if (aiConfig.loadError) {
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> No se pudo LEER la configuración desde Firestore (${aiConfig.loadError}). Revisa las Reglas de Seguridad.`;
+            } else if (aiConfig.configured) {
                 statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-green-600 mr-1"></i> Agente de IA activo (modelo: ${aiConfig.model || DEFAULT_AI_MODEL})`;
             } else {
                 statusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i> Sin API Key configurada. Se usará el plan de referencia estático.`;
@@ -1526,6 +1535,33 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Configuración';
+            }
+        });
+
+        // Botón de diagnóstico: consulta Firestore EN VIVO (sin caché) para confirmar
+        // qué hay realmente guardado en app_config/openrouter_settings en este momento.
+        document.getElementById('btn-verify-ai-config').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-verify-ai-config');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Consultando...';
+            try {
+                const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
+                const snap = await getDoc(configRef);
+                if (!snap.exists()) {
+                    showToast("En Firestore NO existe el documento app_config/openrouter_settings todavía. El guardado nunca se persistió.", true);
+                } else {
+                    const data = snap.data();
+                    const masked = data.apiKey ? `${data.apiKey.slice(0, 6)}...${data.apiKey.slice(-4)} (${data.apiKey.length} caracteres)` : '(vacío)';
+                    const when = data.updatedAt ? new Date(data.updatedAt).toLocaleString('es-ES') : 'desconocida';
+                    showToast(`En Firestore ahora mismo: API Key = ${masked} · Modelo = ${data.model || DEFAULT_AI_MODEL} · Última actualización: ${when}`);
+                }
+            } catch (error) {
+                console.error("Error verificando configuración en Firestore:", error);
+                const code = error?.code || 'error';
+                showToast(`No se pudo LEER app_config desde Firestore (${code}: ${error?.message || ''}). Esto confirma un problema de Reglas de Seguridad, no del código.`, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-1"></i> Verificar en Firestore';
             }
         });
 
