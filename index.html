@@ -138,6 +138,9 @@
                         <button id="tab-ficha" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap" onclick="window.switchResultTab('ficha')">
                             <i class="fa-solid fa-file-lines mr-2"></i> Ficha Diagnóstica
                         </button>
+                        <button id="tab-prompt" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap" onclick="window.switchResultTab('prompt')">
+                            <i class="fa-solid fa-robot mr-2"></i> Prompt IA
+                        </button>
                     </div>
                     <div class="space-x-2 flex shrink-0">
                         <button id="btn-restart" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
@@ -243,6 +246,9 @@
                             <button id="admin-tab-ficha" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap" onclick="window.switchAdminDetailTab('ficha')">
                                 <i class="fa-solid fa-file-lines mr-2"></i> Currículum / Ficha
                             </button>
+                            <button id="admin-tab-prompt" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap" onclick="window.switchAdminDetailTab('prompt')">
+                                <i class="fa-solid fa-robot mr-2"></i> Prompt IA
+                            </button>
                             <button id="btn-admin-regen-ai" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium whitespace-nowrap">
                                 <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> (Re)generar con IA
                             </button>
@@ -317,12 +323,13 @@
         const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
         const DEFAULT_AI_MODEL = "openai/gpt-4o-mini";
 
-        // ── API KEY FIJA (fallback garantizado) ──────────────────────────────
-        // Si Firestore no tiene la clave o las reglas bloquean la lectura,
-        // esta clave se usa automáticamente. Cámbiala aquí cuando rote.
-        const FALLBACK_API_KEY   = "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";
-        const FALLBACK_AI_MODEL  = "openai/gpt-4o-mini";
-        // ─────────────────────────────────────────────────────────────────────
+        // ╔══════════════════════════════════════════════════════════════════╗
+        // ║  PON TU API KEY DE OPENROUTER AQUÍ — NUNCA SE BORRA AL REFRESCAR ║
+        // ║  Formato:  sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ║
+        // ╚══════════════════════════════════════════════════════════════════╝
+        const FALLBACK_API_KEY  = "PEGA_TU_SK-OR-V1_AQUI";
+        const FALLBACK_AI_MODEL = "openai/gpt-4o-mini";
+        // ═══════════════════════════════════════════════════════════════════
 
         // --- CUESTIONARIO COMPLETO ---
         const questionnaire = [
@@ -582,6 +589,92 @@
                         ]
                     }
                 ]
+            },
+            {
+                title: "PLANO INTERNO DE MI NEGOCIO",
+                description: "Estas preguntas sirven para entrenar un agente de IA que atienda a tus clientes como tú: con tu mismo estilo, tus mismos procesos y tus mismas decisiones. Responde con tus palabras, como lo harías en el día a día.",
+                questions: [
+                    {
+                        id: 'n1', type: 'textarea', text: '1. ¿Cuándo una persona te contacta, qué haces primero para atenderla?',
+                        suggestedOptions: [
+                            'Saludo amablemente, pregunto cómo está y en qué puedo ayudarla.',
+                            'Reviso su consulta, le doy una respuesta rápida y le pido los datos que necesito.',
+                            'Primero escucho con calma antes de hablarle de precios o productos.'
+                        ]
+                    },
+                    {
+                        id: 'n2', type: 'textarea', text: '2. ¿Qué necesitas saber del cliente antes de poder ayudarlo o darle un precio?',
+                        suggestedOptions: [
+                            'Qué quiere exactamente, para qué lo necesita y para cuándo.',
+                            'Su presupuesto aproximado y si tiene preferencias de gusto, color o estilo.',
+                            'La cantidad que necesita y el lugar donde se lo voy a entregar.'
+                        ]
+                    },
+                    {
+                        id: 'n3', type: 'textarea', text: '3. ¿Cómo decides qué producto o servicio ofrecerle a cada cliente?',
+                        suggestedOptions: [
+                            'Le pregunto qué busca y le ofrezco lo que mejor le encaje según lo que me contó.',
+                            'Según su presupuesto y sus gustos, le muestro la opción más adecuada.',
+                            'Según lo que tengo disponible en el momento y lo que más le convenga.'
+                        ]
+                    },
+                    {
+                        id: 'n4', type: 'textarea', text: '4. ¿Qué preguntas haces normalmente para entender bien lo que el cliente necesita?',
+                        suggestedOptions: [
+                            '¿Para qué lo va a usar? ¿Cuándo lo necesita? ¿Cuánto quiere gastar?',
+                            '¿Tiene alguna preferencia de color, tamaño o estilo? ¿La usa para algo especial?',
+                            '¿Ya lo ha comprado antes en otro lugar? ¿Qué le gustó y qué no?'
+                        ]
+                    },
+                    {
+                        id: 'n5', type: 'textarea', text: '5. Si una clienta no sabe exactamente qué quiere, ¿cómo la ayudas a decidir?',
+                        suggestedOptions: [
+                            'Le hago preguntas guía para descubrir qué está buscando.',
+                            'Le muestro mis opciones más vendidas o las que mejor encajan con lo que me contó.',
+                            'Le doy mi recomendación honesta según su necesidad y presupuesto.'
+                        ]
+                    },
+                    {
+                        id: 'n6', type: 'textarea', text: '6. ¿Cómo decides cuánto cobrar por tu producto o servicio? ¿Qué tomas en cuenta?',
+                        suggestedOptions: [
+                            'Calculo el costo de materiales e insumos y le agrego mi ganancia.',
+                            'Tomo en cuenta mi tiempo de trabajo y la dificultad de la tarea.',
+                            'Comparo con lo que cobra la competencia y ajusto según el cliente.'
+                        ]
+                    },
+                    {
+                        id: 'n7', type: 'textarea', text: '7. ¿Qué problemas se te presentan con más frecuencia al trabajar con clientes y cómo los solucionas?',
+                        suggestedOptions: [
+                            'Clientes que no saben lo que quieren: les hago más preguntas y les sugiero opciones.',
+                            'Demoras en las respuestas: respondo lo antes posible y confirmo fechas por escrito.',
+                            'Cancelaciones o cambios de último momento: aclaro condiciones desde el inicio.'
+                        ]
+                    },
+                    {
+                        id: 'n8', type: 'textarea', text: '8. ¿Hay algo que nunca harías o recomendarías a una clienta, aunque te lo pida? ¿Qué sería?',
+                        suggestedOptions: [
+                            'Cobrar de más aprovechándome de que no conoce precios.',
+                            'Prometer algo que no puedo cumplir o entregar tarde sin avisar.',
+                            'Regalar mi trabajo ni bajar mi precio por presión de la clienta.'
+                        ]
+                    },
+                    {
+                        id: 'n9', type: 'textarea', text: '9. ¿Cómo te gusta atender a tus clientes? Por ejemplo: ¿prefieres ser formal, amable, cercana, explicar mucho, dar varias opciones...?',
+                        suggestedOptions: [
+                            'Amable y cercana, como si atendiera a una amiga.',
+                            'Explico bien y con calma, incluso si debo repetir las cosas.',
+                            'Doy varias opciones para que ella elija con confianza.'
+                        ]
+                    },
+                    {
+                        id: 'n10', type: 'textarea', text: '10. Si mañana otra persona tuviera que ayudarte en tu negocio y quisiera trabajar de la misma manera que tú, ¿qué le explicarías que debe hacer paso a paso?',
+                        suggestedOptions: [
+                            'Primero saludar y escuchar, después preguntar qué necesita y para cuándo.',
+                            'Mostrar opciones, aclarar precio y condiciones, y confirmar el pedido.',
+                            'Resolver dudas, entregar a tiempo y dar seguimiento para que vuelva.'
+                        ]
+                    }
+                ]
             }
         ];
 
@@ -592,11 +685,14 @@
         let activeTab = 'plan'; // Por defecto muestra el Plan de Acción
         let currentTimestamp = Date.now();
         let allResponses = [];
-        // Se inicializa con la clave fija; loadAIConfig() la sobreescribe si Firestore tiene una más reciente
+        // aiConfig arranca con la clave fija desde el primer milisegundo.
+        // Firebase puede actualizarla si tiene una más reciente, pero NUNCA la deja vacía.
+        const _apiKeyValida = FALLBACK_API_KEY && FALLBACK_API_KEY !== "PEGA_TU_SK-OR-V1_AQUI";
         let aiConfig = {
-            apiKey:     FALLBACK_API_KEY,
+            apiKey:     _apiKeyValida ? FALLBACK_API_KEY : '',
             model:      FALLBACK_AI_MODEL,
-            configured: !!FALLBACK_API_KEY && FALLBACK_API_KEY !== "TU_API_KEY_DE_OPENROUTER_AQUI",
+            configured: _apiKeyValida,
+            source:     _apiKeyValida ? 'codigo' : 'ninguna',  // 'codigo' | 'firestore' | 'ninguna'
             loadError:  null
         };
         let currentAIPlan = null; // Plan de acción generado por IA para la vista de resultados actual
@@ -657,40 +753,39 @@
         // las reglas de Firestore deben permitir LECTURA pública de este documento,
         // pero la ESCRITURA debe quedar restringida solo a usuarios autenticados (admin).
         async function loadAIConfig() {
-            // La clave fija ya está cargada en aiConfig desde el inicio.
-            // Firestore puede sobreescribirla si el admin guardó una más reciente,
-            // pero si falla o está vacía, la clave fija sigue activa.
+            // La clave fija ya está en aiConfig.apiKey desde el arranque.
+            // Intentamos leer Firestore para ver si el admin tiene una versión más reciente.
+            // Si falla (permisos, sin red, etc.) → la clave fija sigue activa sin interrupciones.
             try {
                 const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
                 const snap = await getDoc(configRef);
                 if (snap.exists()) {
                     const data = snap.data();
-                    // Solo sobreescribir si Firestore tiene una clave válida
                     if (data.apiKey && data.apiKey.trim() !== '') {
-                        aiConfig.apiKey = data.apiKey.trim();
-                        aiConfig.model  = data.model || FALLBACK_AI_MODEL;
+                        aiConfig.apiKey    = data.apiKey.trim();
+                        aiConfig.model     = data.model || FALLBACK_AI_MODEL;
+                        aiConfig.source    = 'firestore';
                     }
-                    // Si Firestore no tiene clave, la fija del código sigue activa
-                    aiConfig.configured = !!aiConfig.apiKey;
-                    aiConfig.loadError  = null;
-                } else {
-                    // Documento no existe aún → la clave fija sigue activa
-                    aiConfig.loadError = null;
+                    // Si Firestore no tiene clave válida, la fija del código sigue activa
                 }
+                // Documento inexistente también es OK → clave fija sigue activa
+                aiConfig.configured = !!aiConfig.apiKey;
+                aiConfig.loadError  = null;
             } catch (error) {
-                // Error de permisos u otro → la clave fija sigue activa, no se interrumpe nada
-                console.warn("Firestore no disponible para leer config IA, usando clave fija:", error?.code || error?.message);
-                aiConfig.loadError = error?.code || error?.message || 'Error al leer app_config';
-                // aiConfig.apiKey y aiConfig.model ya tienen los valores fijos, no se tocan
+                // Error de permisos u otro → clave fija sigue activa, NO se muestra error al usuario
+                console.warn("Firestore config IA no disponible, usando clave fija del código:", error?.code);
+                // NO tocar aiConfig.apiKey ni aiConfig.configured — la clave fija sigue activa
+                aiConfig.loadError = null; // silencioso: la clave fija cubre esto
             }
         }
 
         async function saveAIConfig(apiKey, model) {
             const resolvedModel = model || FALLBACK_AI_MODEL;
-            // Actualizar en memoria inmediatamente (no depende de que Firestore responda)
+            // Actualizar en memoria de inmediato — funciona aunque Firestore falle
             aiConfig.apiKey     = apiKey;
             aiConfig.model      = resolvedModel;
             aiConfig.configured = !!apiKey;
+            aiConfig.source     = 'firestore';
             // Intentar persistir en Firestore (falla silenciosamente si no hay permisos)
             try {
                 const configRef = doc(db, CONFIG_COLLECTION, AI_CONFIG_DOC);
@@ -700,7 +795,8 @@
                     updatedAt: Date.now()
                 }, { merge: true });
             } catch (error) {
-                console.warn("No se pudo guardar en Firestore, la clave sigue activa en memoria:", error?.code);
+                console.warn("No se pudo guardar en Firestore:", error?.code);
+                aiConfig.source = 'codigo'; // quedó en memoria pero no persistió
             }
         }
 
@@ -748,9 +844,19 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdo
   "pasos": [
     { "titulo": "string corto y directo (verbo en infinitivo)", "plazo": "string ej: Semanas 1-2", "descripcion": "string de 1-2 frases, específico y accionable, indicando el CÓMO" }
   ],
-  "recomendacionFinal": "string de 1-2 frases, directo y profesional, sin frases de relleno, con el siguiente paso más importante a tomar esta semana"
+  "recomendacionFinal": "string de 1-2 frases, directo y profesional, sin frases de relleno, con el siguiente paso más importante a tomar esta semana",
+  "promptEntrenamiento": "string LARGO, en español, listo para copiar y pegar: es el 'system prompt' / contexto para entrenar un agente de IA que atenderá a los clientes de este negocio como si fuera el/la dueño/a"
 }
-Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizada según las respuestas del emprendedor.`;
+Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizada según las respuestas del emprendedor.
+
+INSTRUCCIONES ESPECIALES PARA EL CAMPO "promptEntrenamiento":
+- Usa TODA la información de la sección "PLANO INTERNO DE MI NEGOCIO": proceso de atención, datos que pides al cliente antes de cotizar, cómo decides qué ofrecer, preguntas que haces para entender al cliente, cómo ayudas a clientes indecisos, criterios de precio, problemas frecuentes y sus soluciones, límites (lo que nunca harías/recomendarías), tono de atención y protocolo paso a paso.
+- Empieza con: "Eres el asistente virtual del negocio [nombre], que vende/ofrece [rubro]. Tu tarea es atender a los clientes EXACTAMENTE como atiende su dueño/a." y continúa describiendo el negocio con los datos disponibles.
+- Describe el proceso paso a paso de atención (saludo → escuchar → preguntar → ofrecer opciones → precio/condiciones → cierre).
+- Lista las preguntas exactas que hace el/la dueño/a para entender al cliente y cómo ayudar a quienes no saben qué quieren.
+- Explica cómo fija los precios y qué toma en cuenta, los problemas frecuentes con clientes y cómo resolverlos, y lo que NUNCA haría.
+- Define el tono y estilo de atención (formal, amable, cercana, explica mucho, da varias opciones, etc.).
+- Sé práctico y específico. No inventes datos que no aparezcan en las respuestas; si algo falta, indícalo como "por definir" o "preguntar al cliente antes de actuar". El prompt debe servir para ENTRENAR a un agente de IA nuevo con el contexto de este negocio.`;
 
             const userPrompt = `Nombre del participante: ${name}\n\nRespuestas del diagnóstico:\n${answersText}\n\nGenera el JSON solicitado.`;
 
@@ -1380,19 +1486,81 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
             `;
         }
 
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        window.copyPromptText = function() {
+            const ta = document.getElementById('ai-training-prompt');
+            if (!ta) return;
+            ta.select();
+            ta.setSelectionRange(0, ta.value.length);
+            const task = navigator.clipboard && navigator.clipboard.writeText
+                ? navigator.clipboard.writeText(ta.value)
+                : Promise.resolve(document.execCommand('copy'));
+            task.then(() => showToast("Prompt de entrenamiento copiado al portapapeles."))
+                .catch(() => showToast("No se pudo copiar automáticamente. Selecciona el texto y cópialo manualmente.", true));
+        };
+
+        function generateAIPromptHtml(aiPlan) {
+            const promptText = aiPlan && aiPlan.promptEntrenamiento && aiPlan.promptEntrenamiento.trim() !== ''
+                ? aiPlan.promptEntrenamiento
+                : '';
+
+            if (!promptText) {
+                return `
+                    <div class="bg-white rounded-2xl shadow-xl p-10 text-center border border-gray-100">
+                        <i class="fa-solid fa-robot text-5xl text-gray-200 mb-4"></i>
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">No hay prompt de entrenamiento aún</h3>
+                        <p class="text-gray-500 text-sm max-w-md mx-auto">El prompt para entrenar tu agente de IA se genera automáticamente con la información de la sección "PLANO INTERNO DE MI NEGOCIO".<br>Configura la API Key de OpenRouter y vuelve a generar con IA.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div class="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-bold text-lg flex items-center"><i class="fa-solid fa-robot mr-2"></i> Prompt de Entrenamiento del Agente</h3>
+                            <p class="text-indigo-100 text-sm">Copia este prompt y úsalo para entrenar un agente de IA que atienda a los clientes de este negocio como lo hace su dueño/a.</p>
+                        </div>
+                        <button onclick="window.copyPromptText()" class="shrink-0 bg-white/15 hover:bg-white/25 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                            <i class="fa-regular fa-copy mr-1"></i> Copiar prompt
+                        </button>
+                    </div>
+                    <div class="p-5">
+                        <textarea id="ai-training-prompt" rows="16" readonly class="w-full font-mono text-sm bg-slate-900 text-slate-100 p-4 rounded-xl focus:outline-none border border-slate-700 leading-relaxed">${escapeHtml(promptText)}</textarea>
+                    </div>
+                </div>
+            `;
+        }
+
         window.switchResultTab = function(tab) {
             activeTab = tab;
             const btnFicha = document.getElementById('tab-ficha');
             const btnPlan = document.getElementById('tab-plan');
-            
+            const btnPrompt = document.getElementById('tab-prompt');
+            const activeCls = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
+            const inactiveCls = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+
+            btnPlan.className = inactiveCls;
+            btnFicha.className = inactiveCls;
+            btnPrompt.className = inactiveCls;
+
             if (tab === 'plan') {
-                btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
-                btnFicha.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+                btnPlan.className = activeCls;
                 document.getElementById('printable-area').innerHTML = generateActionPlanHtml(userAnswers, currentTimestamp, currentAIPlan);
-            } else {
-                btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
-                btnPlan.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+            } else if (tab === 'ficha') {
+                btnFicha.className = activeCls;
                 document.getElementById('printable-area').innerHTML = generateCVHtml(userAnswers, currentTimestamp, currentAIPlan);
+            } else {
+                btnPrompt.className = activeCls;
+                document.getElementById('printable-area').innerHTML = generateAIPromptHtml(currentAIPlan);
             }
         };
 
@@ -1406,7 +1574,7 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
 
         document.getElementById('btn-export-pdf').addEventListener('click', () => {
             const element = document.getElementById('printable-area');
-            const prefix = activeTab === 'plan' ? 'Plan_De_Accion' : 'Ficha_Diagnostica';
+            const prefix = activeTab === 'plan' ? 'Plan_De_Accion' : (activeTab === 'prompt' ? 'Prompt_IA' : 'Ficha_Diagnostica');
             const opt = {
                 margin:       8,
                 filename:     `${prefix}_${(userAnswers['q_name'] || 'Emprendedor').replace(/\s+/g, '_')}.pdf`,
@@ -1519,12 +1687,11 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
 
         function updateAIConfigStatus() {
             const statusEl = document.getElementById('ai-config-status');
-            if (aiConfig.loadError) {
-                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> No se pudo LEER la configuración desde Firestore (${aiConfig.loadError}). Revisa las Reglas de Seguridad.`;
-            } else if (aiConfig.configured) {
-                statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-green-600 mr-1"></i> Agente de IA activo (modelo: ${aiConfig.model || DEFAULT_AI_MODEL})`;
+            if (aiConfig.configured) {
+                const fuente = aiConfig.source === 'firestore' ? 'Firestore' : 'código fuente';
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-green-600 mr-1"></i> Agente de IA activo · Modelo: <strong>${aiConfig.model || DEFAULT_AI_MODEL}</strong> · Clave cargada desde: ${fuente}`;
             } else {
-                statusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i> Sin API Key configurada. Se usará el plan de referencia estático.`;
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i> Sin API Key configurada. Agrega tu clave de OpenRouter arriba y guarda, o ponla directamente en el código (FALLBACK_API_KEY).`;
             }
         }
 
@@ -1672,16 +1839,24 @@ Incluye entre 3 y 5 elementos en "pasos", ordenados de forma lógica y priorizad
 
             const btnPlan = document.getElementById('admin-tab-plan');
             const btnFicha = document.getElementById('admin-tab-ficha');
+            const btnPrompt = document.getElementById('admin-tab-prompt');
             const timestamp = data.timestamp || Date.now();
+            const activeCls = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
+            const inactiveCls = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+
+            btnPlan.className = inactiveCls;
+            btnFicha.className = inactiveCls;
+            btnPrompt.className = inactiveCls;
 
             if (tab === 'plan') {
-                btnPlan.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
-                btnFicha.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+                btnPlan.className = activeCls;
                 document.getElementById('admin-detail-wrapper').innerHTML = generateActionPlanHtml(data.answers, timestamp, adminDetailAIPlan);
-            } else {
-                btnFicha.className = "px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap";
-                btnPlan.className = "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors whitespace-nowrap";
+            } else if (tab === 'ficha') {
+                btnFicha.className = activeCls;
                 document.getElementById('admin-detail-wrapper').innerHTML = generateCVHtml(data.answers, timestamp, adminDetailAIPlan);
+            } else {
+                btnPrompt.className = activeCls;
+                document.getElementById('admin-detail-wrapper').innerHTML = generateAIPromptHtml(adminDetailAIPlan);
             }
         };
 
